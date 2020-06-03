@@ -23,7 +23,7 @@ class Title() : Controller() {
     ): View {
         val view = inflater.inflate(R.layout.dest_title, container, false)
 
-        view.findViewById<Toolbar>(R.id.toolbar).setTitle(R.string.title_home)
+        view.findViewById<Toolbar>(R.id.toolbar).setTitle(R.string.title_home) //TODO use title from Destination
         view.findViewById<Button>(R.id.about_btn)
                 .setOnClickListener {
                     it.findNavController()

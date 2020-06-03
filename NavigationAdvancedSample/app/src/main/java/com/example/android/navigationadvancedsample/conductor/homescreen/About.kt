@@ -4,7 +4,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import androidx.appcompat.widget.Toolbar
+import androidx.navigation.findNavController
 import com.bluelinelabs.conductor.Controller
 import com.example.android.navigationadvancedsample.R
 
@@ -21,7 +23,11 @@ class About() : Controller() {
         savedViewState: Bundle?
     ): View {
         return inflater.inflate(R.layout.dest_about, container, false).also {
-            it.findViewById<Toolbar>(R.id.toolbar).setTitle(R.string.title_home)
+            it.findViewById<Toolbar>(R.id.toolbar).setTitle(R.string.title_about) //TODO use title from Destination
+
+            it.findViewById<Button>(R.id.btn_pushX).setOnClickListener {
+                it.findNavController().navigate(R.id.action_about_to_x)
+            }
         }
     }
 }

@@ -36,5 +36,25 @@
       android:id="@+id/aboutScreen"
       android:name="com.example.android.navigationadvancedsample.conductor.homescreen.About"
       android:label="@string/title_about"
-      tools:layout="@layout/dest_about" />
+      tools:layout="@layout/dest_about">
+    <action
+        android:id="@+id/action_about_to_x"
+        app:destination="@id/x" />
+  </controller>
+
+  <controller
+      android:id="@+id/x"
+      android:name="com.example.android.navigationadvancedsample.conductor.homescreen.X"
+      android:label="@string/title_x"
+      tools:layout="@layout/dest_x">
+    <argument
+        android:name="index"
+        android:defaultValue="0"
+        app:argType="integer" />
+
+    <action
+        android:id="@+id/action_x_to_x"
+        app:destination="@id/x" />
+  </controller>
+
 </navigation>

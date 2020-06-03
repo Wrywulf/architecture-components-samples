@@ -4,20 +4,23 @@ import android.content.Context
 import android.os.Bundle
 import android.util.AttributeSet
 import android.view.ViewGroup
-import androidx.navigation.NavController
-import androidx.navigation.NavDestination
-import androidx.navigation.NavOptions
-import androidx.navigation.Navigator
-import androidx.navigation.NavigatorProvider
+import androidx.fragment.app.FragmentManager
+import androidx.navigation.*
+import androidx.navigation.fragment.FragmentNavigator
 import com.bluelinelabs.conductor.Controller
 import com.bluelinelabs.conductor.ControllerChangeHandler
 import com.bluelinelabs.conductor.Router
 import com.bluelinelabs.conductor.RouterTransaction
 import com.example.android.navigationadvancedsample.R
 import java.lang.reflect.Constructor
-import java.util.HashMap
+import java.util.*
 import kotlin.collections.set
 
+/**
+ * Navigator that navigates through [RouterTransaction]s. Every
+ * destination using this Navigator must set a valid [Controller] class name with
+ * <code>android:name</code> or [Destination.controllerClass].
+ */
 @Navigator.Name("controller")
 class ControllerNavigator(private val router: Router) :
     Navigator<ControllerNavigator.Destination>() {
@@ -59,7 +62,7 @@ class ControllerNavigator(private val router: Router) :
                     return
                 }
 
-              // TODO is this still needed? Cannot find the equivalent in FragmentNavigator
+                // TODO is this still needed? Cannot find the equivalent in FragmentNavigator
 //                val backStackEffect = if (isPush) {
 //                    BACK_STACK_DESTINATION_ADDED
 //                } else {
@@ -87,20 +90,51 @@ class ControllerNavigator(private val router: Router) :
         destination: Destination,
         args: Bundle?,
         navOptions: NavOptions?,
-        navigatorExtras: Extras?
+        navigatorExtras: Navigator.Extras?
     ): NavDestination? {
-        val controller = destination.createController(args)
+        val initialNavigation: Boolean = router.backstack.isEmpty()
 
-        val transaction = RouterTransaction
+        val isSingleTopReplacement = (navOptions != null && !initialNavigation
+                && navOptions.shouldLaunchSingleTop()
+                && router.backstack.last()
+                .tag() == destination.id.toString())
+
+        val transaction by lazy(mode = LazyThreadSafetyMode.NONE) {
+            createTransaction(destination = destination, args = args)
+        }
+
+        val isAdded = when {
+            initialNavigation -> {
+                router.setRoot(transaction)
+                true
+            }
+            isSingleTopReplacement -> {
+                // Single Top means we only want one instance on the back stack
+                // replace the current tip with a new instance
+                router.replaceTopController(transaction)
+                false
+            }
+            else -> {
+                router.pushController(transaction)
+                true
+            }
+        }
+        if (navigatorExtras is Extras) {
+            //TODO shared element?
+        }
+        return if (isAdded) {
+            destination
+        } else {
+            null
+        }
+    }
+
+    private fun createTransaction(destination: Destination, args: Bundle?): RouterTransaction {
+        // TODO add transitions etc.
+        val controller = destination.createController(args)
+        return RouterTransaction
                 .with(controller)
                 .tag(destination.id.toString())
-
-        if (!router.hasRootController()) {
-            router.setRoot(transaction)
-        } else {
-            router.pushController(transaction)
-        }
-        return destination
     }
 
     /**
@@ -117,7 +151,7 @@ class ControllerNavigator(private val router: Router) :
     class Destination(controllerNavigator: Navigator<Destination>) :
         NavDestination(controllerNavigator) {
 
-        private lateinit var controllerClass: Class<out Controller>
+        var controllerClass: Class<out Controller>? = null
 
         override fun onInflate(context: Context, attrs: AttributeSet) {
             super.onInflate(context, attrs)
@@ -125,19 +159,21 @@ class ControllerNavigator(private val router: Router) :
                 attrs,
                 R.styleable.ControllerNavigator
             )
-            controllerClass = getControllerClassByName(
-                context, requireNotNull(
-                    a.getString(
-                        R.styleable.ControllerNavigator_android_name
+            if (controllerClass == null) {
+                controllerClass = getControllerClassByName(
+                        context, requireNotNull(
+                            a.getString(
+                                R.styleable.ControllerNavigator_android_name
+                            )
+                        )
                     )
-                )
-            )
+            }
             a.recycle()
         }
 
         private fun getControllerClassByName(
-          context: Context,
-          origName: String
+            context: Context,
+            origName: String
         ): Class<out Controller> {
             var name = origName
             if (name.isNotEmpty() && name[0] == '.') {
@@ -164,7 +200,7 @@ class ControllerNavigator(private val router: Router) :
          * @return an instance of the [Controller class][.getControllerClass] associated
          * with this destination
          */
-        fun createController(args: Bundle?): Controller = newInstance(controllerClass, args)
+        fun createController(args: Bundle?): Controller = newInstance(requireNotNull(controllerClass), args)
 
         /**
          * Instantiates a [Controller] using reflection. If the [Controller] has [Bundle] constructor
@@ -229,5 +265,12 @@ class ControllerNavigator(private val router: Router) :
                 throw IllegalStateException("The controller does not have a bundle constructor.")
             }
         }
+    }
+
+    /**
+     * Extras that can be passed to [ControllerNavigator] to enable [Controller] specific behavior
+     */
+    class Extras : Navigator.Extras {
+        //TODO
     }
 }
