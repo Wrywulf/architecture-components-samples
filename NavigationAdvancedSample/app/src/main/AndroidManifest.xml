@@ -44,9 +44,10 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <!-- This is added to handle a deep link -->
-            <nav-graph android:value="@navigation/list" />
+            <nav-graph android:value="@navigation/single_stack" />
         </activity>
     </application>
 

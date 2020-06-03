@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
   ~ Copyright 2019, The Android Open Source Project
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,20 +19,22 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/home"
-    app:startDestination="@+id/titleScreen">
+    app:startDestination="@+id/titleScreen"
+    tools:ignore="UnusedNavigation">
 
-    <fragment
-        android:id="@+id/titleScreen"
-        android:name="com.example.android.navigationadvancedsample.homescreen.Title"
-        android:label="@string/title_home"
-        tools:layout="@layout/dest_title">
-        <action
-            android:id="@+id/action_title_to_about"
-            app:destination="@id/aboutScreen"/>
-    </fragment>
-    <fragment
-        android:id="@+id/aboutScreen"
-        android:name="com.example.android.navigationadvancedsample.homescreen.About"
-        android:label="@string/title_about"
-        tools:layout="@layout/dest_about"/>
+  <controller
+      android:id="@+id/titleScreen"
+      android:name="com.example.android.navigationadvancedsample.conductor.homescreen.Title"
+      android:label="@string/title_home"
+      tools:layout="@layout/dest_title">
+    <action
+        android:id="@+id/action_title_to_about"
+        app:destination="@id/aboutScreen" />
+  </controller>
+
+  <controller
+      android:id="@+id/aboutScreen"
+      android:name="com.example.android.navigationadvancedsample.conductor.homescreen.About"
+      android:label="@string/title_about"
+      tools:layout="@layout/dest_about" />
 </navigation>
