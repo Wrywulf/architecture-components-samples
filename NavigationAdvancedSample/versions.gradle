@@ -63,10 +63,11 @@ versions.timber = "4.7.1"
 versions.transition = "1.3.0"
 versions.truth = "1.0.1"
 versions.work = "2.2.0"
+versions.conductor = "3.0.0-rc6"
 ext.versions = versions
 
 def build_versions = [:]
-build_versions.min_sdk = 14
+build_versions.min_sdk = 21
 build_versions.compile_sdk = 29
 build_versions.target_sdk = 29
 build_versions.build_tools = "29.0.3"
@@ -214,6 +215,13 @@ work.testing = "androidx.work:work-testing:$versions.work"
 work.firebase = "androidx.work:work-firebase:$versions.work"
 work.runtime_ktx = "androidx.work:work-runtime-ktx:$versions.work"
 deps.work = work
+
+def conductor = [:]
+conductor.core = "com.bluelinelabs:conductor:$versions.conductor"
+conductor.androidXTransition = "com.bluelinelabs:conductor-androidx-transition:$versions.conductor"
+conductor.viewPager = "com.bluelinelabs:conductor-viewpager:$versions.conductor"
+conductor.archLifecycle = "com.bluelinelabs:conductor-archlifecycle:$versions.conductor"
+deps.conductor = conductor
 
 ext.deps = deps
 
