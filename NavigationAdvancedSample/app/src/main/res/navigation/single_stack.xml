@@ -22,6 +22,11 @@
     app:startDestination="@+id/titleScreen"
     tools:ignore="UnusedNavigation">
 
+  <action
+      android:id="@+id/action_upToHome"
+      app:destination="@id/titleScreen"
+      app:popUpTo="@id/titleScreen" />
+
   <controller
       android:id="@+id/titleScreen"
       android:name="com.example.android.navigationadvancedsample.conductor.homescreen.Title"

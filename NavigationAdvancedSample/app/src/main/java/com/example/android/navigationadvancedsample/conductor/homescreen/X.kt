@@ -27,7 +27,13 @@ class X(arguments: Bundle? = null) : Controller(arguments) {
         return inflater.inflate(R.layout.dest_x, container, false)
                 .also {
                     it.findViewById<Toolbar>(R.id.toolbar)
-                            .setTitle(R.string.title_x) //TODO use title from Destination
+                            .apply {
+                                setTitle(R.string.title_x) //TODO use title from Destination
+                                setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
+                                setNavigationOnClickListener {
+                                    findNavController().navigate(R.id.action_upToHome)
+                                }
+                            }
 
                     val index = args.getInt(KEY_INDEX, -1)
                     it.findViewById<TextView>(R.id.lbl_x).text = "X $index"
