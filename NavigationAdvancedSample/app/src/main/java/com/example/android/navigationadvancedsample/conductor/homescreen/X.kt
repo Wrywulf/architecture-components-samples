@@ -2,6 +2,7 @@ package com.example.android.navigationadvancedsample.conductor.homescreen
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -26,6 +27,8 @@ class X(arguments: Bundle? = null) : Controller(arguments) {
     ): View {
         return inflater.inflate(R.layout.dest_x, container, false)
                 .also {
+                    val index = args.getInt(KEY_INDEX, -1)
+                    Log.d("X", "onCreateView. index $index")
                     it.findViewById<Toolbar>(R.id.toolbar)
                             .apply {
                                 setTitle(R.string.title_x) //TODO use title from Destination
@@ -35,12 +38,12 @@ class X(arguments: Bundle? = null) : Controller(arguments) {
                                 }
                             }
 
-                    val index = args.getInt(KEY_INDEX, -1)
                     it.findViewById<TextView>(R.id.lbl_x).text = "X $index"
 
 
                     it.findViewById<Button>(R.id.btn_pushX)
                             .setOnClickListener {
+                                Log.d("X", "navigate from $index -> ${index+1}")
                                 it.findNavController()
                                         .navigate(R.id.action_x_to_x, Bundle().apply {
                                             putInt(
@@ -49,6 +52,10 @@ class X(arguments: Bundle? = null) : Controller(arguments) {
                                         })
                             }
                 }
+    }
+
+    override fun onDestroyView(view: View) {
+        Log.d("X", "onDestroyView. index ${args.getInt(KEY_INDEX, -1)}")
     }
 
     companion object {

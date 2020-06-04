@@ -4,14 +4,18 @@ import android.content.Context
 import android.os.Bundle
 import android.util.AttributeSet
 import android.view.ViewGroup
-import androidx.fragment.app.FragmentManager
+import androidx.annotation.AnimRes
+import androidx.annotation.AnimatorRes
 import androidx.navigation.*
-import androidx.navigation.fragment.FragmentNavigator
 import com.bluelinelabs.conductor.Controller
 import com.bluelinelabs.conductor.ControllerChangeHandler
 import com.bluelinelabs.conductor.Router
 import com.bluelinelabs.conductor.RouterTransaction
+import com.bluelinelabs.conductor.changehandler.FadeChangeHandler
+import com.bluelinelabs.conductor.changehandler.SimpleSwapChangeHandler
 import com.example.android.navigationadvancedsample.R
+import com.example.android.navigationadvancedsample.conductor.ControllerNavigator.Destination
+import com.example.android.navigationadvancedsample.conductor.changehandler.AnimatorChangeHandler
 import java.lang.reflect.Constructor
 import java.util.*
 import kotlin.collections.set
@@ -99,9 +103,8 @@ class ControllerNavigator(private val router: Router) :
                 && router.backstack.last()
                 .tag() == destination.id.toString())
 
-        val transaction by lazy(mode = LazyThreadSafetyMode.NONE) {
-            createTransaction(destination = destination, args = args)
-        }
+        val transaction =
+            createTransaction(destination = destination, args = args, navOptions = navOptions)
 
         val isAdded = when {
             initialNavigation -> {
@@ -129,11 +132,63 @@ class ControllerNavigator(private val router: Router) :
         }
     }
 
-    private fun createTransaction(destination: Destination, args: Bundle?): RouterTransaction {
+    private fun createTransaction(
+        destination: Destination,
+        args: Bundle?,
+        navOptions: NavOptions?
+    ): RouterTransaction {
         // TODO add transitions etc.
         val controller = destination.createController(args)
+
+        @AnimRes
+        @AnimatorRes
+        val enterAnim: Int? = navOptions?.let {
+            if (it.enterAnim != -1) {
+                it.enterAnim
+            } else null
+        }
+
+        @AnimRes
+        @AnimatorRes
+        val exitAnim: Int? = navOptions?.let {
+            if (it.exitAnim != -1) {
+                it.exitAnim
+            } else null
+        }
+
+        @AnimRes
+        @AnimatorRes
+        val popEnterAnim: Int? = navOptions?.let {
+            if (it.popEnterAnim != -1) {
+                it.popEnterAnim
+            } else null
+        }
+
+        @AnimRes
+        @AnimatorRes
+        val popExitAnim: Int? = navOptions?.let {
+            if (it.popExitAnim != -1) {
+                it.popExitAnim
+            } else null
+        }
+
+        val pushChangeHandler = if (enterAnim != null || exitAnim != null) {
+            AnimatorChangeHandler(fromAnimResId = exitAnim, toAnimResId = enterAnim)
+        } else {
+            null
+        }
+
+        val popChangeHandler = if (popEnterAnim != null || popExitAnim != null) {
+            AnimatorChangeHandler(fromAnimResId = popExitAnim, toAnimResId = popEnterAnim)
+        } else {
+            null
+        }
+
+
         return RouterTransaction
                 .with(controller)
+                .popChangeHandler(popChangeHandler)
+                .pushChangeHandler(pushChangeHandler)
                 .tag(destination.id.toString())
     }
 
@@ -161,12 +216,12 @@ class ControllerNavigator(private val router: Router) :
             )
             if (controllerClass == null) {
                 controllerClass = getControllerClassByName(
-                        context, requireNotNull(
-                            a.getString(
-                                R.styleable.ControllerNavigator_android_name
-                            )
+                    context, requireNotNull(
+                        a.getString(
+                            R.styleable.ControllerNavigator_android_name
                         )
                     )
+                )
             }
             a.recycle()
         }
@@ -200,7 +255,8 @@ class ControllerNavigator(private val router: Router) :
          * @return an instance of the [Controller class][.getControllerClass] associated
          * with this destination
          */
-        fun createController(args: Bundle?): Controller = newInstance(requireNotNull(controllerClass), args)
+        fun createController(args: Bundle?): Controller =
+            newInstance(requireNotNull(controllerClass), args)
 
         /**
          * Instantiates a [Controller] using reflection. If the [Controller] has [Bundle] constructor

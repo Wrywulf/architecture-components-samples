@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- THIS IS FLAWED (CANNOT USE View.Width in XML) BUT INCLUDED FOR TESTING PURPOSES -->
+<objectAnimator
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:propertyName="X"
+    android:valueType="floatType"
+    android:valueFrom="-500"
+    android:valueTo="0"
+    android:duration="500"/>

@@ -1,6 +1,7 @@
 package com.example.android.navigationadvancedsample.conductor.homescreen
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -22,6 +23,7 @@ class About() : Controller() {
         container: ViewGroup,
         savedViewState: Bundle?
     ): View {
+            Log.d("About", "onCreateView.")
         return inflater.inflate(R.layout.dest_about, container, false).also {
             it.findViewById<Toolbar>(R.id.toolbar).setTitle(R.string.title_about) //TODO use title from Destination
 
@@ -29,5 +31,9 @@ class About() : Controller() {
                 it.findNavController().navigate(R.id.action_about_to_x)
             }
         }
+    }
+
+    override fun onDestroyView(view: View) {
+            Log.d("About", "onDestroyView.")
     }
 }
