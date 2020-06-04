@@ -10,6 +10,7 @@ import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.*
+import com.bluelinelabs.conductor.ChangeHandlerFrameLayout
 import com.bluelinelabs.conductor.Conductor
 import com.bluelinelabs.conductor.Router
 import com.example.android.navigationadvancedsample.R
@@ -34,7 +35,7 @@ import com.example.android.navigationadvancedsample.R
  */
 class NavHostLayout @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
-) : FrameLayout(context, attrs, defStyleAttr), NavHost, LifecycleObserver {
+) : ChangeHandlerFrameLayout(context, attrs, defStyleAttr), NavHost, LifecycleObserver {
 
     private var graphId: Int = 0
     private var defaultHost: Boolean = false
