@@ -24,4 +24,9 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+
+    <style name="Destination">
+        <item name="android:background">?colorSurface</item>
+    </style>
+
 </resources>
