@@ -92,44 +92,6 @@ class AnimatorChangeHandler @JvmOverloads constructor(
     override fun removesFromViewOnPush(): Boolean {
         return removesFromViewOnPush
     }
-//
-//    /**
-//     * Should be overridden to return the Animator to use while replacing Views.
-//     *
-//     * @param container The container these Views are hosted in.
-//     * @param from The previous View in the container or `null` if there was no Controller before this transition
-//     * @param to The next View that should be put in the container or `null` if no Controller is being transitioned to
-//     * @param isPush True if this is a push transaction, false if it's a pop.
-//     * @param toAddedToContainer True if the "to" view was added to the container as a part of this ChangeHandler. False if it was already in the hierarchy.
-//     */
-//    private fun getAnimator(
-//        container: ViewGroup,
-//        from: View?,
-//        to: View?,
-//        isPush: Boolean,
-//        toAddedToContainer: Boolean
-//    ): Animator {
-//        val animator = AnimatorSet()
-//
-//        if (to != null) {
-//            val inflatedAnimatorTo =
-//                toAnimResId?.let { AnimatorInflater.loadAnimator(to.context, it) }
-//            if (inflatedAnimatorTo != null) {
-//                inflatedAnimatorTo.setTarget(to)
-//                animator.play(inflatedAnimatorTo)
-//            }
-//        }
-//
-//        if (from != null) {
-//            val inflatedAnimatorFrom =
-//                fromAnimResId?.let { AnimatorInflater.loadAnimator(from.context, it) }
-//            if (inflatedAnimatorFrom != null) {
-//                inflatedAnimatorFrom.setTarget(from)
-//                animator.play(inflatedAnimatorFrom)
-//            }
-//        }
-//        return animator
-//    }
 
     /**
      * Will be called after the animation is complete to reset the View that was removed to its pre-animation state.
@@ -286,7 +248,7 @@ class AnimatorChangeHandler @JvmOverloads constructor(
          * Encapsulates to/from [Animator]s
          */
         class Ator(val fromAnimator: Animator?, val toAnimator: Animator?) : Anim() {
-            val animator = AnimatorSet().apply {
+            private val animator: AnimatorSet = AnimatorSet().apply {
                 toAnimator?.let { play(it) }
                 fromAnimator?.let { play(it) }
             }
@@ -320,10 +282,18 @@ class AnimatorChangeHandler @JvmOverloads constructor(
             }
 
             override fun resetFromAnimation() {
-                animator.removeListener(animatorListener)
-                animator.duration = 0
-                animator.interpolator = ReverseInterpolator()
-                animator.start()
+                /**
+                 * Semi-hacky way to enable resetting the properties animated to their original state:
+                 * simply reverse them instantly
+                 */
+                animator.clone()
+                        .apply {
+                            removeAllListeners()
+                            duration = 0
+                            interpolator = ReverseInterpolator()
+                            start()
+                        }
+
             }
 
             override fun onListenerAdded(listener: Listener) {
@@ -339,8 +309,8 @@ class AnimatorChangeHandler @JvmOverloads constructor(
             }
 
             /**
-             * Semi-hacky way to enable resetting the properties animated to their original state:
-             * simply reverse them instantly
+             * Plays an animation in reverse. The actual interpolator doesn't matter as we're
+             * using a duration of 0.
              */
             private class ReverseInterpolator : Interpolator {
                 private val interpolator: Interpolator = LinearInterpolator()
