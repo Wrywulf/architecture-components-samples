@@ -28,7 +28,8 @@ class About() : Controller() {
             it.findViewById<Toolbar>(R.id.toolbar).setTitle(R.string.title_about) //TODO use title from Destination
 
             it.findViewById<Button>(R.id.btn_pushX).setOnClickListener {
-                it.findNavController().navigate(R.id.action_about_to_x)
+                Log.d("About", "navigate to modal")
+                it.findNavController().navigate(R.id.action_to_modal)
             }
         }
     }

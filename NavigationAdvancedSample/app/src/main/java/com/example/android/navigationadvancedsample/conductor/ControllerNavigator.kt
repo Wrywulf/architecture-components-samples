@@ -61,15 +61,6 @@ class ControllerNavigator(private val router: Router) :
                 if (lastTag == 0) {
                     return
                 }
-
-                // TODO is this still needed? Cannot find the equivalent in FragmentNavigator
-//                val backStackEffect = if (isPush) {
-//                    BACK_STACK_DESTINATION_ADDED
-//                } else {
-//                    BACK_STACK_DESTINATION_POPPED
-//                }
-//
-//                dispatchOnNavigatorNavigated(lastTag, backStackEffect)
             }
         })
     }

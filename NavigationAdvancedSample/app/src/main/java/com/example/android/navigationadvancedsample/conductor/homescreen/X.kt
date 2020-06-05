@@ -34,7 +34,7 @@ class X(arguments: Bundle? = null) : Controller(arguments) {
                                 setTitle(R.string.title_x) //TODO use title from Destination
                                 setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
                                 setNavigationOnClickListener {
-                                    findNavController().navigate(R.id.action_upToHome)
+                                    findNavController().navigate(R.id.action_pop_modal)
                                 }
                             }
 
