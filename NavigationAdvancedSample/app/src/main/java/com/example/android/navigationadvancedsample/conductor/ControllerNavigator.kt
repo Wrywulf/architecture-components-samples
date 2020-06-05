@@ -11,8 +11,6 @@ import com.bluelinelabs.conductor.Controller
 import com.bluelinelabs.conductor.ControllerChangeHandler
 import com.bluelinelabs.conductor.Router
 import com.bluelinelabs.conductor.RouterTransaction
-import com.bluelinelabs.conductor.changehandler.FadeChangeHandler
-import com.bluelinelabs.conductor.changehandler.SimpleSwapChangeHandler
 import com.example.android.navigationadvancedsample.R
 import com.example.android.navigationadvancedsample.conductor.ControllerNavigator.Destination
 import com.example.android.navigationadvancedsample.conductor.changehandler.AnimatorChangeHandler
@@ -30,9 +28,7 @@ class ControllerNavigator(private val router: Router) :
     Navigator<ControllerNavigator.Destination>() {
 
     private val lastTransaction: RouterTransaction?
-        get() = if (router.backstackSize == 0) {
-            null
-        } else router.backstack[router.backstackSize - 1]
+        get() = router.backstack.lastOrNull()
 
     private var lastPoppedTag: String = ""
 
@@ -78,13 +74,7 @@ class ControllerNavigator(private val router: Router) :
         })
     }
 
-    override fun popBackStack(): Boolean = if (router.backstackSize > 1) {
-        lastPoppedTag = lastTransaction?.tag()
-                .orEmpty()
-        router.popCurrentController()
-    } else {
-        false
-    }
+    override fun popBackStack(): Boolean = lastTransaction?.let { router.popController(it.controller) } ?: false
 
     override fun createDestination(): Destination {
         return Destination(this)
