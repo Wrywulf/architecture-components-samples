@@ -2,7 +2,9 @@ package com.example.android.navigationadvancedsample.conductor
 
 import android.content.Context
 import android.os.Bundle
+import android.os.Handler
 import android.util.AttributeSet
+import android.util.Log
 import android.view.ViewGroup
 import androidx.annotation.AnimRes
 import androidx.annotation.AnimatorRes
@@ -26,6 +28,48 @@ import kotlin.collections.set
 @Navigator.Name("controller")
 class ControllerNavigator(private val router: Router) :
     Navigator<ControllerNavigator.Destination>() {
+
+    private val handler = Handler()
+
+    private val desiredBackstack = mutableListOf<RouterTransaction>()
+
+    private val backStackProcessingRunnable = Runnable {
+        // make the desired backstack come into effect by popping the delta from the router's backstack
+        val delta: Set<RouterTransaction> = router.backstack.toSet()
+                .minus(desiredBackstack.toSet())
+        val newTopOfBackStack = desiredBackstack.lastOrNull()
+        desiredBackstack.clear()
+        Log.d(
+            "ControllerNavigator",
+            "Execute backstack change. Entries ${delta.size}"
+        )
+        if (delta.size == 1) {
+            delta.firstOrNull()?.let {
+                Log.d("ControllerNavigator", "Popping single with tag: ${it.tag()}")
+                router.popController(it.controller)
+            }
+        } else if (delta.size > 1) {
+            newTopOfBackStack?.let {
+                Log.d(
+                    "ControllerNavigator",
+                    "Popping multiple (${delta.size}) up to tag: ${it.tag()}"
+                )
+                router.popToTag(
+                    it.tag()!!,
+                    delta.firstOrNull()
+                            ?.popChangeHandler()
+                )
+            }
+        }
+    }
+
+    /**
+     * Schedules back stack popping - overwriting any previous value
+     */
+    private fun dispatchBackstackPopping() {
+        handler.removeCallbacks(backStackProcessingRunnable)
+        handler.post(backStackProcessingRunnable)
+    }
 
     private val lastTransaction: RouterTransaction?
         get() = router.backstack.lastOrNull()
@@ -65,7 +109,19 @@ class ControllerNavigator(private val router: Router) :
         })
     }
 
-    override fun popBackStack(): Boolean = lastTransaction?.let { router.popController(it.controller) } ?: false
+    @ExperimentalStdlibApi
+    override fun popBackStack(): Boolean {
+        return lastTransaction?.let {
+            if (desiredBackstack.isEmpty()) {
+                desiredBackstack.addAll(router.backstack)
+            }
+            desiredBackstack.removeLastOrNull()
+                    ?.let {
+                        dispatchBackstackPopping()
+                        true
+                    } ?: false
+        } ?: false
+    }
 
     override fun createDestination(): Destination {
         return Destination(this)
@@ -166,11 +222,15 @@ class ControllerNavigator(private val router: Router) :
         }
 
 
+        val tag = "${destination.id}-${args.hashCode()}"
+
+
+        Log.d("ControllerNavigator", "Navigating to tag: $tag")
         return RouterTransaction
                 .with(controller)
                 .popChangeHandler(popChangeHandler)
                 .pushChangeHandler(pushChangeHandler)
-                .tag(destination.id.toString())
+                .tag(tag)
     }
 
     /**
