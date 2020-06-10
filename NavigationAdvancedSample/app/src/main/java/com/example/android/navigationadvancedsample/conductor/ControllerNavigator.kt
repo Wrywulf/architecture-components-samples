@@ -13,6 +13,7 @@ import com.bluelinelabs.conductor.Controller
 import com.bluelinelabs.conductor.ControllerChangeHandler
 import com.bluelinelabs.conductor.Router
 import com.bluelinelabs.conductor.RouterTransaction
+import com.bluelinelabs.conductor.internal.LifecycleHandler
 import com.example.android.navigationadvancedsample.R
 import com.example.android.navigationadvancedsample.conductor.ControllerNavigator.Destination
 import com.example.android.navigationadvancedsample.conductor.changehandler.AnimatorChangeHandler
@@ -21,9 +22,15 @@ import java.util.*
 import kotlin.collections.set
 
 /**
- * Navigator that navigates through [RouterTransaction]s. Every
- * destination using this Navigator must set a valid [Controller] class name with
+ * Navigator that navigates through [RouterTransaction]s via the provided [Router] This navigator does
+ * not manage its own backstack, but manages it exclusively via the [Router].
+ *
+ * Every destination using this Navigator must set a valid [Controller] class name with
  * <code>android:name</code> or [Destination.controllerClass].
+ *
+ * NOTE!
+ * This [Navigator] does not save or restore router state. It is assumed that the ctor provided [Router]
+ * already has the correct state save/restore mechanism in place externally. (see ie. [LifecycleHandler.getRouter])
  */
 @Navigator.Name("controller")
 class ControllerNavigator(private val router: Router) :
@@ -44,10 +51,11 @@ class ControllerNavigator(private val router: Router) :
             "Execute backstack change. Entries ${delta.size}"
         )
         if (delta.size == 1) {
-            delta.firstOrNull()?.let {
-                Log.d("ControllerNavigator", "Popping single with tag: ${it.tag()}")
-                router.popController(it.controller)
-            }
+            delta.firstOrNull()
+                    ?.let {
+                        Log.d("ControllerNavigator", "Popping single with tag: ${it.tag()}")
+                        router.popController(it.controller)
+                    }
         } else if (delta.size > 1) {
             newTopOfBackStack?.let {
                 Log.d(
@@ -55,9 +63,9 @@ class ControllerNavigator(private val router: Router) :
                     "Popping multiple (${delta.size}) up to tag: ${it.tag()}"
                 )
                 router.popToTag(
-                    it.tag()!!,
+                    it.tag()!!, // pop to the new "top of backstack"..
                     delta.firstOrNull()
-                            ?.popChangeHandler()
+                            ?.popChangeHandler() // ..but use the changehandler from the last popped transaction
                 )
             }
         }
