@@ -32,13 +32,11 @@ class AnimatorChangeHandler @JvmOverloads constructor(
     var needsImmediateCompletion = false
     private var completed = false
 
-    //    private var animator: Animator? = null
     private var anim: Anim? = null
     private var onAnimationReadyOrAbortedListener: OnAnimationReadyOrAbortedListener? =
         null
 
     override fun saveToBundle(bundle: Bundle) {
-        super.saveToBundle(bundle)
         fromAnimResId?.let {
             bundle.putInt(
                 KEY_ANIMATOR_FROM_RES,
@@ -58,9 +56,21 @@ class AnimatorChangeHandler @JvmOverloads constructor(
     }
 
     override fun restoreFromBundle(bundle: Bundle) {
-        super.restoreFromBundle(bundle)
-        fromAnimResId = bundle.getInt(KEY_ANIMATOR_FROM_RES)
-        toAnimResId = bundle.getInt(KEY_ANIMATOR_TO_RES)
+        fromAnimResId = bundle.getInt(KEY_ANIMATOR_FROM_RES, -1)
+                .let {
+                    if (it != -1) {
+                        it
+                    } else {
+                        null
+                    }
+                }
+        toAnimResId = bundle.getInt(KEY_ANIMATOR_TO_RES, -1).let {
+            if (it != -1) {
+                it
+            } else {
+                null
+            }
+        }
         removesFromViewOnPush =
             bundle.getBoolean(KEY_REMOVES_FROM_ON_PUSH)
     }
