@@ -2,15 +2,12 @@ package com.example.android.navigationadvancedsample.conductor
 
 import android.content.Context
 import android.os.Bundle
-import android.os.Handler
 import android.util.AttributeSet
 import android.util.Log
-import android.view.ViewGroup
 import androidx.annotation.AnimRes
 import androidx.annotation.AnimatorRes
 import androidx.navigation.*
 import com.bluelinelabs.conductor.Controller
-import com.bluelinelabs.conductor.ControllerChangeHandler
 import com.bluelinelabs.conductor.Router
 import com.bluelinelabs.conductor.RouterTransaction
 import com.bluelinelabs.conductor.internal.LifecycleHandler
@@ -36,99 +33,13 @@ import kotlin.collections.set
 class ControllerNavigator(private val router: Router) :
     Navigator<ControllerNavigator.Destination>() {
 
-    private val handler = Handler()
-
-    private val desiredBackstack = mutableListOf<RouterTransaction>()
-
-    private val backStackProcessingRunnable = Runnable {
-        // make the desired backstack come into effect by popping the delta from the router's backstack
-        val delta: Set<RouterTransaction> = router.backstack.toSet()
-                .minus(desiredBackstack.toSet())
-        val newTopOfBackStack = desiredBackstack.lastOrNull()
-        desiredBackstack.clear()
-        Log.d(
-            "ControllerNavigator",
-            "Execute backstack change. Entries ${delta.size}"
-        )
-        if (delta.size == 1) {
-            delta.firstOrNull()
-                    ?.let {
-                        Log.d("ControllerNavigator", "Popping single with tag: ${it.tag()}")
-                        router.popController(it.controller)
-                    }
-        } else if (delta.size > 1) {
-            newTopOfBackStack?.let {
-                Log.d(
-                    "ControllerNavigator",
-                    "Popping multiple (${delta.size}) up to tag: ${it.tag()}"
-                )
-                router.popToTag(
-                    it.tag()!!, // pop to the new "top of backstack"..
-                    delta.firstOrNull()
-                            ?.popChangeHandler() // ..but use the changehandler from the last popped transaction
-                )
-            }
-        }
-    }
-
-    /**
-     * Schedules back stack popping - overwriting any previous value
-     */
-    private fun dispatchBackstackPopping() {
-        handler.removeCallbacks(backStackProcessingRunnable)
-        handler.post(backStackProcessingRunnable)
-    }
-
-    private val lastTransaction: RouterTransaction?
-        get() = router.backstack.lastOrNull()
-
-    private var lastPoppedTag: String = ""
-
-    private val lastTag: String
-        get() {
-            lastTransaction ?: return lastPoppedTag
-            return lastTransaction?.tag()
-                    .orEmpty()
-        }
-
     init {
-        router.addChangeListener(object : ControllerChangeHandler.ControllerChangeListener {
-            override fun onChangeStarted(
-                to: Controller?,
-                from: Controller?,
-                isPush: Boolean,
-                container: ViewGroup,
-                handler: ControllerChangeHandler
-            ) {
-            }
-
-            override fun onChangeCompleted(
-                to: Controller?,
-                from: Controller?,
-                isPush: Boolean,
-                container: ViewGroup,
-                handler: ControllerChangeHandler
-            ) {
-                val lastTag = lastTag.toIntOrNull() ?: 0
-                if (lastTag == 0) {
-                    return
-                }
-            }
-        })
+        router.setPopsLastView(true)
     }
 
     @ExperimentalStdlibApi
     override fun popBackStack(): Boolean {
-        return lastTransaction?.let {
-            if (desiredBackstack.isEmpty()) {
-                desiredBackstack.addAll(router.backstack)
-            }
-            desiredBackstack.removeLastOrNull()
-                    ?.let {
-                        dispatchBackstackPopping()
-                        true
-                    } ?: false
-        } ?: false
+        return router.popCurrentController()
     }
 
     override fun createDestination(): Destination {

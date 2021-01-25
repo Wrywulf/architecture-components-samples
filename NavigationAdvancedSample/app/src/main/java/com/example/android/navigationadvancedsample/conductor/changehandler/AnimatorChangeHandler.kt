@@ -16,7 +16,6 @@ import androidx.annotation.AnimatorRes
 import com.bluelinelabs.conductor.Controller
 import com.bluelinelabs.conductor.ControllerChangeHandler
 
-
 /**
  * A base [ControllerChangeHandler] that facilitates using [Animator]s to replace Controller Views
  *
@@ -336,7 +335,7 @@ class AnimatorChangeHandler @JvmOverloads constructor(
          * Encapsulates to/from [Animation]s
          */
         data class Ation(val fromAnimation: Animation?, val toAnimation: Animation?) : Anim() {
-            // Animation doesn't track cancelation, so we need to track it externally
+            // Animation doesn't track cancellation, so we need to track it externally
             private var isCanceled = false
 
             private var container: ViewGroup? = null
@@ -371,10 +370,6 @@ class AnimatorChangeHandler @JvmOverloads constructor(
                 }
 
                 override fun onAnimationEnd(animation: Animation?) {
-                    // onAnimationEnd() comes during draw(), so there can still be some
-                    // draw events happening after this call. We don't want to detach
-                    // the view until after the onAnimationEnd()
-
                     // onAnimationEnd() comes during draw(), so there can still be some
                     // draw events happening after this call. We don't want to detach
                     // the view until after the onAnimationEnd()

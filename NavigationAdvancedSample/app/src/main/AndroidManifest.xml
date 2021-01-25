@@ -29,11 +29,6 @@
         tools:ignore="GoogleAppIndexingWarning">
         <activity android:name="com.example.android.navigationadvancedsample.MainActivity"
             android:label="NavFragSample">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
             <!-- This is added to handle a deep link -->
             <nav-graph android:value="@navigation/list" />
         </activity>

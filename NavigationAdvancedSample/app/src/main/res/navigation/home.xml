@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
   ~ Copyright 2019, The Android Open Source Project
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,18 +21,56 @@
     android:id="@+id/home"
     app:startDestination="@+id/titleScreen">
 
-    <fragment
-        android:id="@+id/titleScreen"
-        android:name="com.example.android.navigationadvancedsample.homescreen.Title"
-        android:label="@string/title_home"
-        tools:layout="@layout/dest_title">
-        <action
-            android:id="@+id/action_title_to_about"
-            app:destination="@id/aboutScreen"/>
-    </fragment>
-    <fragment
-        android:id="@+id/aboutScreen"
-        android:name="com.example.android.navigationadvancedsample.homescreen.About"
-        android:label="@string/title_about"
-        tools:layout="@layout/dest_about"/>
+  <controller
+      android:id="@+id/titleScreen"
+      android:name="com.example.android.navigationadvancedsample.conductor.homescreen.Title"
+      android:label="@string/title_home"
+      tools:layout="@layout/dest_title">
+    <action
+        android:id="@+id/action_title_to_about"
+        app:destination="@id/aboutScreen" />
+  </controller>
+
+  <controller
+      android:id="@+id/aboutScreen"
+      android:name="com.example.android.navigationadvancedsample.conductor.homescreen.About"
+      android:label="@string/title_about"
+      tools:layout="@layout/dest_about"></controller>
+
+  <action
+      android:id="@+id/action_to_modal"
+      app:destination="@id/modal"
+      app:enterAnim="@anim/slide_in_bottom"
+      app:popExitAnim="@anim/slide_out_bottom" />
+
+  <navigation
+      android:id="@+id/modal"
+      app:startDestination="@id/x">
+
+    <action
+        android:id="@+id/action_pop_modal"
+        app:enterAnim="@anim/slide_in_bottom"
+        app:popExitAnim="@anim/slide_out_bottom"
+        app:popUpTo="@id/modal"
+        app:popUpToInclusive="true" />
+
+    <controller
+        android:id="@+id/x"
+        android:name="com.example.android.navigationadvancedsample.conductor.homescreen.X"
+        android:label="@string/title_x"
+        tools:layout="@layout/dest_x">
+      <argument
+          android:name="index"
+          android:defaultValue="0"
+          app:argType="integer" />
+
+      <action
+          android:id="@+id/action_x_to_x"
+          app:destination="@id/x"
+          app:enterAnim="@anim/slide_in_right"
+          app:exitAnim="@anim/slide_out_left"
+          app:popEnterAnim="@anim/slide_in_left"
+          app:popExitAnim="@anim/slide_out_right" />
+    </controller>
+  </navigation>
 </navigation>
