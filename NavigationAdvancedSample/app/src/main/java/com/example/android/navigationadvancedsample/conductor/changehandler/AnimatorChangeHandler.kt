@@ -19,8 +19,8 @@ import com.bluelinelabs.conductor.ControllerChangeHandler
 /**
  * A base [ControllerChangeHandler] that facilitates using [Animator]s to replace Controller Views
  *
- * @param fromAnimResId Optional [Animator] or [Animation] resource ID for the exiting view
- * @param toAnimResId Optional [Animator] or [Animation] resource ID for the entering view
+ * @param fromAnimResId Optional [Animator] or [Animation] resource ID for the exiting view (value of 0 will be interpreted as null)
+ * @param toAnimResId Optional [Animator] or [Animation] resource ID for the entering view (value of 0 will be interpreted as null)
  */
 class AnimatorChangeHandler @JvmOverloads constructor(
     @AnimatorRes @AnimRes private var fromAnimResId: Int? = null,
@@ -34,6 +34,19 @@ class AnimatorChangeHandler @JvmOverloads constructor(
     private var anim: Anim? = null
     private var onAnimationReadyOrAbortedListener: OnAnimationReadyOrAbortedListener? =
         null
+    init {
+        /*
+         * When using Navigation and deepLink,
+         * we will be created with default values as 0 instead of null,
+         * since we handle null nicely, convert the 0, which ought to mean the same, to null.
+         */
+        if(fromAnimResId == 0){
+            fromAnimResId = null
+        }
+        if(toAnimResId == 0){
+            toAnimResId = null
+        }
+    }
 
     override fun saveToBundle(bundle: Bundle) {
         fromAnimResId?.let {
