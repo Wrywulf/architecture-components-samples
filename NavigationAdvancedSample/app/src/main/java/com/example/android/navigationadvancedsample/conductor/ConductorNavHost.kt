@@ -63,13 +63,6 @@ class ConductorNavHost(
             savedStateBundles =
                 savedInstanceState.getSparseParcelableArray<SavedStates>(KEY_GRAPH_SAVED_STATES)
                     ?: SparseArray()
-            /*
-             * If we are restoring,
-             * we want to control the state of router ourselves,
-             * and not have it re-inflate any potentially restored views,
-             * so destroy the router all together first.
-             */
-            destroyRouterMethod.invoke(router, true)
         } else {
             savedStateBundles = SparseArray()
         }
@@ -135,7 +128,7 @@ class ConductorNavHost(
         }
         /* Configure the Router and NavHost with the right cached state, if present */
         val savedStates = savedStateBundles[newGraphId]
-        Log.i("ConductorNavigation", "setGraph savedStates=$savedStates")
+        Log.i("ConductorNavHost", "setGraph savedStates=$savedStates")
         if (savedStates != null) {
             /*
              * Restore navController first so it has the chance to clean up the old graph backstack,
@@ -143,6 +136,13 @@ class ConductorNavHost(
              */
             navController.restoreState(savedStates.navControllerBundle)
             navHostController.setGraph(newGraphId, startDestinationArgs)
+            /*
+             * In full activity restoration cases, it seems the router backstack,
+             * navigation backstack and our cached router backstack gets out of sync,
+             * destroying the router here, just prior to our manual restoration,
+             * fixes that issue.
+             */
+            destroyRouterMethod.invoke(router, true)
 
             /*
              * Then restore the router state with the old backstack
@@ -166,6 +166,12 @@ class ConductorNavHost(
      */
     fun onSaveInstanceState(outState: Bundle) {
         cacheGraphState()
+        /*
+         * Destroy the router after saving it, since we wish to control restoration ourselves,
+         * and not have it re-inflate any potentially restored views,
+         * so destroy the router all together first.
+         */
+        destroyRouterMethod.invoke(router, true)
         startDestinationArgs?.let { outState.putBundle(KEY_START_DEST_ARGS, it) }
         outState.putInt(KEY_GRAPH_ID, graphId)
         outState.putSparseParcelableArray(KEY_GRAPH_SAVED_STATES, savedStateBundles)
