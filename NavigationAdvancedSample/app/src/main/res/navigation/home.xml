@@ -35,7 +35,7 @@
       android:id="@+id/aboutScreen"
       android:name="com.example.android.navigationadvancedsample.conductor.homescreen.About"
       android:label="@string/title_about"
-      tools:layout="@layout/dest_about"></controller>
+      tools:layout="@layout/dest_about" />
 
   <action
       android:id="@+id/action_to_modal"

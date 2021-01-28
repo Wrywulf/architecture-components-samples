@@ -37,9 +37,28 @@ class ControllerNavigator(private val router: Router) :
         router.setPopsLastView(true)
     }
 
+    private val destroyRouterMethod =
+        Router::class.java.getDeclaredMethod("destroy", Boolean::class.java)
+                .apply {
+                    isAccessible = true
+                }
+
     @ExperimentalStdlibApi
     override fun popBackStack(): Boolean {
-        return router.popCurrentController()
+        val prePopSize = router.backstackSize
+//        if (prePopSize == 1) {
+//            destroyRouterMethod.invoke(router, true)
+//            return true
+//        } else {
+//            router.popCurrentController()
+//            val postPopSize = router.backstackSize
+//            val wasSomethingPopped = (postPopSize == (prePopSize - 1))
+//            return wasSomethingPopped
+//        }
+        router.popCurrentController()
+        val postPopSize = router.backstackSize
+        val wasSomethingPopped = (postPopSize == (prePopSize - 1))
+        return wasSomethingPopped
     }
 
     override fun createDestination(): Destination {
@@ -57,14 +76,14 @@ class ControllerNavigator(private val router: Router) :
         val isSingleTopReplacement = (navOptions != null && !initialNavigation
                 && navOptions.shouldLaunchSingleTop()
                 && router.backstack.last()
-                .tag() == destination.id.toString())
+                .tag() == createTag(destination, args))
 
         val transaction =
             createTransaction(destination = destination, args = args, navOptions = navOptions)
 
         val isAdded = when {
             initialNavigation -> {
-                router.setRoot(transaction)
+                router.pushController(transaction)
                 true
             }
             isSingleTopReplacement -> {
@@ -81,6 +100,7 @@ class ControllerNavigator(private val router: Router) :
         if (navigatorExtras is Extras) {
             //TODO shared element?
         }
+
         return if (isAdded) {
             destination
         } else {
@@ -128,20 +148,20 @@ class ControllerNavigator(private val router: Router) :
             } else null
         }
 
-        val pushChangeHandler = if (enterAnim != null || exitAnim != null) {
+        val pushChangeHandler = if (isAnimValid(enterAnim) || isAnimValid(exitAnim)) {
             AnimatorChangeHandler(fromAnimResId = exitAnim, toAnimResId = enterAnim)
         } else {
             null
         }
 
-        val popChangeHandler = if (popEnterAnim != null || popExitAnim != null) {
+        val popChangeHandler = if (isAnimValid(popEnterAnim) || isAnimValid(popExitAnim)) {
             AnimatorChangeHandler(fromAnimResId = popExitAnim, toAnimResId = popEnterAnim)
         } else {
             null
         }
 
 
-        val tag = "${destination.id}-${args.hashCode()}"
+        val tag = createTag(destination, args)
 
 
         Log.d("ControllerNavigator", "Navigating to tag: $tag")
@@ -150,6 +170,19 @@ class ControllerNavigator(private val router: Router) :
                 .popChangeHandler(popChangeHandler)
                 .pushChangeHandler(pushChangeHandler)
                 .tag(tag)
+    }
+
+    private fun isAnimValid(animResId:Int?):Boolean{
+        /*
+         * null is obviously invalid
+         * -1 is default value if nothing was provided
+         * 0 is default value in Navigation when doing deepLinking
+         */
+        return (animResId != null && animResId != -1 && animResId != 0)
+    }
+
+    private fun createTag(destination: NavDestination, args: Bundle?): String {
+        return "${destination.id}-${args.hashCode()}"
     }
 
     /**

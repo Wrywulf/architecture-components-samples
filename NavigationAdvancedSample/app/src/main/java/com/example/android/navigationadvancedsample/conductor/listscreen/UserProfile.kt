@@ -29,9 +29,10 @@ import com.example.android.navigationadvancedsample.listscreen.MyAdapter.Compani
 /**
  * Shows a profile screen for a user, taking the name from the arguments.
  */
-class UserProfile() : Controller() {
+class UserProfile : Controller {
 
-    protected constructor(bundle: Bundle?) : this()
+    constructor() : super(null)
+    constructor(args: Bundle?) : super(args)
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -44,5 +45,11 @@ class UserProfile() : Controller() {
         val name = args.getString(USERNAME_KEY) ?: "Ali Connors"
         view.findViewById<TextView>(R.id.profile_user_name).text = name
         return view
+    }
+    override fun onDetach(view: View) {
+        super.onDetach(view)
+    }
+    override fun onAttach(view: View) {
+        super.onAttach(view)
     }
 }

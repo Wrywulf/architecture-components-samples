@@ -58,6 +58,12 @@ class Leaderboard() : Controller() {
         return view
     }
 
+    override fun onDetach(view: View) {
+        super.onDetach(view)
+    }
+    override fun onAttach(view: View) {
+        super.onAttach(view)
+    }
 }
 
 class MyAdapter(private val myDataset: Array<String>) :

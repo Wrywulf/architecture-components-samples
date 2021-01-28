@@ -16,6 +16,7 @@
 
 package com.example.android.navigationadvancedsample
 
+import android.app.Activity
 import android.content.Intent
 import android.util.Log
 import android.util.SparseArray
@@ -23,6 +24,8 @@ import androidx.core.util.forEach
 import androidx.core.util.set
 import androidx.core.view.doOnNextLayout
 import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.navigation.NavController
@@ -41,65 +44,38 @@ fun BottomNavigationView.setupWithConductorNavController(
      * map of id's to navGraphs, i.e R.id.home to R.navigation.home
      */
     navGraphIds: Map<Int, Int>,
-    intent: Intent,
-    conductorNavHost: ConductorNavHost
+    conductorNavHost: ConductorNavHost,
+    keepMenuItemSelectionsAsBackstack: Boolean = false
 ) {
     Log.i("BottomNavigationView", "setupWithConductorNavController navGraphIds=$navGraphIds")
-    var previouslySelectedItemId = this.selectedItemId
     // When a navigation item is selected
     setOnNavigationItemSelectedListener { item ->
         Log.i("BottomNavigationView", "setOnNavigationItemSelectedListener item=$item")
-
-        val currentlySelectedItemId = item.itemId
-
-        val newGraph = navGraphIds.getValue(currentlySelectedItemId)
-        Log.i("BottomNavigationView", "setOnNavigationItemSelectedListener newGraph=$newGraph")
-        conductorNavHost.setGraph(newGraph)
-        /* cache newly selectedItemId */
-        previouslySelectedItemId = currentlySelectedItemId
+//        if (keepMenuItemSelectionsAsBackstack) {
+            conductorNavHost.navController.navigate(item.itemId)
+//        } else {
+//            conductorNavHost.navigateBackstack(item.itemId)
+//        }
         true
     }
 
     // Optional: on item reselected, pop back stack to the destination of the graph
-    setOnNavigationItemReselectedListener {
-        Log.i("BottomNavigationView", "setOnNavigationItemReselectedListener item=$it")
-        val navController = conductorNavHost.navController
-        // Pop the back stack to the start destination of the current navController graph
-        navController.popBackStack(
-            navController.graph.startDestination, false
-        )
-    }
-
-    /*
-     * delay running until we're done setting up the initial navigation,
-     * to prevent Illegal state crashes due to Lifecycle still being Initialized,
-     * when trying to switch graphs.
-     */
-    doOnNextLayout {
-        var wasDeeplinkHandled = false
-        val currentlySelectedItemId = previouslySelectedItemId
-        // Handle deep link - FIXME untested with actual deeplinking
-        navGraphIds.forEach { (_, graphId) ->
-            /*
-             * Since we're using the same NavHost we need to set graph for each and ask if someone can handle it, or do nothing
-             * FIXME Not the most optimal, but at least it causes each graph and router to be cached and ready for restoration when user starts changing menuItems
-             */
-            conductorNavHost.setGraph(graphId, null)
-            // Handle Intent, if able
-            if (conductorNavHost.navController.handleDeepLink(intent)
-                && selectedItemId != conductorNavHost.navController.graph.id
-            ) {
-                this.selectedItemId = conductorNavHost.navController.graph.id
-                wasDeeplinkHandled = true
-            }
-        }
+    setOnNavigationItemReselectedListener { item ->
+        Log.i("BottomNavigationView", "setOnNavigationItemReselectedListener item=$item, id=${item.itemId}")
+        // Pop the back stack to the start destination of the each of our "bottom navigation sub graphs"
+//        if (keepMenuItemSelectionsAsBackstack) {
         /*
-         * If deepLink was unhandled, ensure the navigation and backstack is as we initially had.
+         FIXME itemId is not the screen destination id
          */
-        if (!wasDeeplinkHandled) {
-            conductorNavHost.setGraph(navGraphIds.getValue(currentlySelectedItemId), null)
-        }
-
+            conductorNavHost.navController.popBackStack(navGraphIds.getValue(item.itemId), false)
+//        } else {
+//            conductorNavHost.navigateBackstack(
+//                destinationId = item.itemId,
+//                startDestinationArgs = null,
+//                shouldCacheCurrent = false,
+//                destroyCachedGraph = true
+//            )
+//        }
     }
 }
 
@@ -327,5 +303,4 @@ private fun FragmentManager.isOnBackStack(backStackName: String): Boolean {
     return false
 }
 
-private fun getConductorTag(index: Int) = "bottomNavigation#$index"
 private fun getFragmentTag(index: Int) = "bottomNavigation#$index"
