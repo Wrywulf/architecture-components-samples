@@ -47,9 +47,21 @@ fun BottomNavigationView.setupWithConductorNavController(
     // When a navigation item is selected
     var previousSelection = selectedItemId
     setOnNavigationItemSelectedListener { item ->
-        Log.i("BottomNavigationView", "setOnNavigationItemSelectedListener previousSelection=$previousSelection, item=$item, id=${item.itemId}")
+        Log.i(
+            "BottomNavigationView",
+            "setOnNavigationItemSelectedListener previousSelection=$previousSelection, item=$item, id=${item.itemId}"
+        )
         if (!keepMenuItemSelectionsAsBackstack) {
-            conductorNavHost.navController.popBackStack(navGraphIds.getValue(previousSelection), true)
+            /*
+             * We are switching tabs in the bottom nav,
+             * and dont want any transitional pop animations when doing so.
+             */
+            conductorNavHost.setAllPopAnimations(false)
+            conductorNavHost.navController.popBackStack(
+                navGraphIds.getValue(previousSelection),
+                true
+            )
+            conductorNavHost.setAllPopAnimations(true)
         }
         conductorNavHost.navController.navigate(item.itemId)
         previousSelection = item.itemId

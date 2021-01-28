@@ -41,6 +41,8 @@ class Leaderboard() : Controller() {
         container: ViewGroup,
         savedViewState: Bundle?
     ): View {
+overriddenPopHandler
+
         // Inflate the layout for this fragment
         val view = inflater.inflate(R.layout.fragment_leaderboard, container, false)
 

@@ -2,7 +2,6 @@ package com.example.android.navigationadvancedsample.conductor
 
 import android.app.Activity
 import android.os.Bundle
-import android.os.Parcelable
 import android.util.Log
 import android.util.SparseArray
 import android.view.ViewGroup
@@ -10,7 +9,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.*
 import com.bluelinelabs.conductor.Conductor
 import com.bluelinelabs.conductor.Router
-import kotlinx.android.parcel.Parcelize
 
 /**
  * A root [NavHost] that is to be instantiated in [Activity.onCreate]
@@ -34,9 +32,9 @@ class ConductorNavHost(
     private var startDestinationArgs: Bundle? = null
 ) : NavHost {
     private var navHostController: ConductorNavHostController
-    private val savedStateBundles: SparseArray<SavedStates>
-    private val router: Router = Conductor.attachRouter(activity, container, savedInstanceState)
-    private val navigator = ControllerNavigator(router)
+    private val savedStateBundles: SparseArray<Bundle>
+    private val navigator =
+        ControllerNavigator(Conductor.attachRouter(activity, container, savedInstanceState))
     private val destroyRouterMethod =
         Router::class.java.getDeclaredMethod("destroy", Boolean::class.java)
                 .apply {
@@ -99,7 +97,7 @@ class ConductorNavHost(
             graphId = savedInstanceState.getInt(KEY_GRAPH_ID)
             Log.i("ConductorNavigation", "Restoring savedInstanceState graphId: $graphId")
             savedStateBundles =
-                savedInstanceState.getSparseParcelableArray<SavedStates>(KEY_GRAPH_SAVED_STATES)
+                savedInstanceState.getSparseParcelableArray<Bundle>(KEY_GRAPH_SAVED_STATES)
                     ?: SparseArray()
 
             val previousBackstackRootDestination = savedInstanceState.getInt(KEY_DESTINATION_ID, -1)
@@ -139,11 +137,6 @@ class ConductorNavHost(
      * @param destinationId of the new graph we wish to use
      */
     private fun cacheOrRestoreDestinationBasedBackstack(destinationId: Int) {
-        Log.i(
-            "ConductorNavHost",
-            "cacheOrRestoreDestinationBasedBackstack destinationId=$destinationId, previousBackstackRootDestination=${previousBackstackRootDestination}," +
-                    " routerBackStack size=${router.backstackSize}, navSize=${navHostController.backStack.size}"
-        )
         val previousDestinationId = previousBackstackRootDestination
         if (previousDestinationId == null || previousDestinationId == destinationId) {
             /*
@@ -157,37 +150,26 @@ class ConductorNavHost(
              * If the previousDestinationId is not the same as current and we have a cache version, then restore
              */
             /* Configure the Router and NavHost with the right cached state, if present */
-            val savedStates = savedStateBundles[destinationId]
-            if (savedStates != null) {
-                Log.i(
-                    "ConductorNavHost",
-                    "cacheOrRestoreDestinationBasedBackstack RESTORING destinationId=$destinationId")
+            val savedState = savedStateBundles[destinationId]
+            if (savedState != null) {
                 /*
                  * Restore navController the previous state,
                  * then call setGraph to trigger a complete wipe of the current backstack,
                  * and restoration of the previous state we just set
                  */
-                navController.restoreState(savedStates.navControllerBundle)
+                navController.restoreState(savedState)
                 navHostController.setGraph(graphId, startDestinationArgs)
-                /*
-             * In full activity restoration cases, it seems the router backstack,
-             * navigation backstack and our cached router backstack gets out of sync,
-             * destroying the router here, just prior to our manual restoration,
-             * fixes that issue.
-             */
-//                destroyRouterMethod.invoke(router, true)
 
+                Log.i(
+                    "ConductorNavHost",
+                    "cacheOrRestoreDestinationBasedBackstack RESTORING destinationId=$destinationId, backstackLabels=${navController.backStack.map { "${it.destination.label}," }}"
+                )
                 /*
-                 * Then restore the router state with the old backstack
+                 * Cache newly restored state again, since re-restoring a previously restored state causes weird issues,
+                 * where a controller wont be on the right "backstack" anymore but be on a different than original
                  */
-                router.restoreInstanceState(savedStates.routerBundle)
-                router.rebindIfNeeded()
-//                savedStateBundles.remove(destinationId)
+                cacheGraphState(destinationId)
             } else {
-                /*
-                 * FIXME new destination so we need to clear backstack to previous destination,
-                 *  then push new destination again, then save
-                 */
                 /*
                  * New destination, so save state
                  */
@@ -206,31 +188,38 @@ class ConductorNavHost(
             cacheGraphState(it)
             outState.putInt(KEY_DESTINATION_ID, it)
         }
+        /*
+         * Destroy the router after saving it, since we wish to control restoration ourselves,
+         * and not have it re-inflate any potentially restored views,
+         * so destroy the router all together first.
+         */
+        destroyRouterMethod.invoke(navigator.router, true)
         startDestinationArgs?.let { outState.putBundle(KEY_START_DEST_ARGS, it) }
         outState.putInt(KEY_GRAPH_ID, graphId)
         outState.putSparseParcelableArray(KEY_GRAPH_SAVED_STATES, savedStateBundles)
     }
 
     private fun cacheGraphState(id: Int) {
+        val backstackDestinationLabels = navController.backStack.map { "${it.destination.label}," }
         Log.i(
             "ConductorNavHost",
-            "cacheGraphState CACHING id=$id")
+            "cacheGraphState CACHING id=$id, backstackLabels=$backstackDestinationLabels"
+        )
         /*
          * Save state of current Router and NavHost,
          * since setting a new graph will pop any backstack associated with the previous graph,
          * so we can restore it to this Router backstack and NavHost backstack,
          * upon setting this graph, back again.
          */
-        val routerBundle = Bundle()
-        router.saveInstanceState(routerBundle)
         val navigationBundle = navController.saveState() ?: Bundle.EMPTY
-        savedStateBundles.put(
-            id,
-            SavedStates(
-                routerBundle,
-                navigationBundle
-            )
-        )
+        savedStateBundles.put(id, navigationBundle)
+    }
+
+    /**
+     * @see [ControllerNavigator.setAllPopAnimations]
+     */
+    fun setAllPopAnimations(enabled: Boolean) {
+        navigator.setAllPopAnimations(enabled)
     }
 
     companion object {
@@ -243,8 +232,4 @@ class ConductorNavHost(
     }
 
     override fun getNavController(): NavController = navHostController
-
-    @Parcelize
-    private data class SavedStates(val routerBundle: Bundle, val navControllerBundle: Bundle) :
-        Parcelable
 }

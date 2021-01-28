@@ -10,6 +10,7 @@ import androidx.navigation.*
 import com.bluelinelabs.conductor.Controller
 import com.bluelinelabs.conductor.Router
 import com.bluelinelabs.conductor.RouterTransaction
+import com.bluelinelabs.conductor.changehandler.SimpleSwapChangeHandler
 import com.bluelinelabs.conductor.internal.LifecycleHandler
 import com.example.android.navigationadvancedsample.R
 import com.example.android.navigationadvancedsample.conductor.ControllerNavigator.Destination
@@ -30,11 +31,65 @@ import kotlin.collections.set
  * already has the correct state save/restore mechanism in place externally. (see ie. [LifecycleHandler.getRouter])
  */
 @Navigator.Name("controller")
-class ControllerNavigator(private val router: Router) :
+class ControllerNavigator(val router: Router) :
     Navigator<ControllerNavigator.Destination>() {
+    private val destroyRouterMethod =
+        Router::class.java.getDeclaredMethod("destroy", Boolean::class.java)
+                .apply {
+                    isAccessible = true
+                }
 
     init {
         router.setPopsLastView(true)
+    }
+
+    override fun onSaveState(): Bundle {
+        val routerBundle = Bundle()
+        router.saveInstanceState(routerBundle)
+        val backstackNames = router.backstack.map { it.controller.toString() }
+
+        Log.i(
+            "ControllerNavigator",
+            "onSaveState CACHING backstackNames=$backstackNames"
+        )
+        return routerBundle
+    }
+
+    /**
+     * Toggle all pop animations for all controllers currently in backstack,
+     * to either [enabled] == true, which means they all use whatever was given with their [RouterTransaction],
+     * or [enabled] == false, which then utilizes [SimpleSwapChangeHandler] to show no animation.
+     */
+    fun setAllPopAnimations(enabled: Boolean) {
+        router.backstack.map {
+            val popHandler = if (enabled) {
+                null
+            } else {
+                SimpleSwapChangeHandler()
+            }
+            it.controller.overridePopHandler(popHandler)
+        }
+    }
+
+    override fun onRestoreState(savedState: Bundle) {
+        super.onRestoreState(savedState)
+        Log.i(
+            "ControllerNavigator",
+            "onRestoreState RESTORING pre destroy backstackNames=${router.backstack.map { it.controller.toString() }}"
+        )
+        /*
+         * In full activity restoration cases, it seems the router backstack,
+         * navigation backstack and our cached router backstack gets out of sync,
+         * destroying the router here, just prior to our manual restoration,
+         * fixes that issue.
+         */
+        destroyRouterMethod.invoke(router, true)
+        router.restoreInstanceState(savedState)
+        router.rebindIfNeeded()
+        Log.i(
+            "ControllerNavigator",
+            "onRestoreState RESTORING backstackNames=${router.backstack.map { it.controller.toString() }}"
+        )
     }
 
     @ExperimentalStdlibApi
@@ -55,6 +110,10 @@ class ControllerNavigator(private val router: Router) :
         navOptions: NavOptions?,
         navigatorExtras: Navigator.Extras?
     ): NavDestination? {
+        Log.d(
+            "ControllerNavigator",
+            "navigate to destination=$destination, PRE backstack names=${router.backstack.map { it.controller.toString() }}"
+        )
         val initialNavigation: Boolean = router.backstack.isEmpty()
 
         val isSingleTopReplacement = (navOptions != null && !initialNavigation
@@ -85,6 +144,10 @@ class ControllerNavigator(private val router: Router) :
             //TODO shared element?
         }
 
+        Log.d(
+            "ControllerNavigator",
+            "navigate to destination=$destination, POST backstack names=${router.backstack.map { it.controller.toString() }}"
+        )
         return if (isAdded) {
             destination
         } else {
@@ -156,7 +219,7 @@ class ControllerNavigator(private val router: Router) :
                 .tag(tag)
     }
 
-    private fun isAnimValid(animResId:Int?):Boolean{
+    private fun isAnimValid(animResId: Int?): Boolean {
         /*
          * null is obviously invalid
          * -1 is default value if nothing was provided
