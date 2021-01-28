@@ -19,8 +19,8 @@ import com.bluelinelabs.conductor.ControllerChangeHandler
 /**
  * A base [ControllerChangeHandler] that facilitates using [Animator]s to replace Controller Views
  *
- * @param fromAnimResId Optional [Animator] or [Animation] resource ID for the exiting view (value of 0 will be interpreted as null)
- * @param toAnimResId Optional [Animator] or [Animation] resource ID for the entering view (value of 0 will be interpreted as null)
+ * @param fromAnimResId Optional [Animator] or [Animation] resource ID for the exiting view
+ * @param toAnimResId Optional [Animator] or [Animation] resource ID for the entering view
  */
 class AnimatorChangeHandler @JvmOverloads constructor(
     @AnimatorRes @AnimRes private var fromAnimResId: Int? = null,
@@ -34,19 +34,6 @@ class AnimatorChangeHandler @JvmOverloads constructor(
     private var anim: Anim? = null
     private var onAnimationReadyOrAbortedListener: OnAnimationReadyOrAbortedListener? =
         null
-    init {
-        /*
-         * When using Navigation and deepLink,
-         * we will be created with default values as 0 instead of null,
-         * since we handle null nicely, convert the 0, which ought to mean the same, to null.
-         */
-        if(fromAnimResId == 0){
-            fromAnimResId = null
-        }
-        if(toAnimResId == 0){
-            toAnimResId = null
-        }
-    }
 
     override fun saveToBundle(bundle: Bundle) {
         fromAnimResId?.let {
@@ -76,13 +63,14 @@ class AnimatorChangeHandler @JvmOverloads constructor(
                         null
                     }
                 }
-        toAnimResId = bundle.getInt(KEY_ANIMATOR_TO_RES, -1).let {
-            if (it != -1) {
-                it
-            } else {
-                null
-            }
-        }
+        toAnimResId = bundle.getInt(KEY_ANIMATOR_TO_RES, -1)
+                .let {
+                    if (it != -1) {
+                        it
+                    } else {
+                        null
+                    }
+                }
         removesFromViewOnPush =
             bundle.getBoolean(KEY_REMOVES_FROM_ON_PUSH)
     }
@@ -198,33 +186,39 @@ class AnimatorChangeHandler @JvmOverloads constructor(
             return
         }
 
-        anim = Anim.createFromResources(container.context, fromAnimResId, toAnimResId)
-                ?.apply {
-                    addListener(object : Anim.Listener {
-                        override fun onAnimationCancel(animation: Anim) {
-                            from?.let { resetFromView(it) }
-                            if (to != null && to.parent === container) {
-                                container.removeView(to)
-                            }
-                            complete(changeListener, this)
-                        }
-
-                        override fun onAnimationEnd(animation: Anim) {
-                            if (!canceled && anim != null) {
-                                if (from != null && (!isPush || removesFromViewOnPush)) {
-                                    container.removeView(from)
-                                }
-                                complete(changeListener, this)
-                                if (isPush && from != null) {
-                                    resetFromView(from)
-                                }
-                            }
-                        }
-
-                    })
-
-                    start(container = container, fromView = from, toView = to)
+        /*
+         * requireNotNull, because if we're not able to create the animators,
+         * we won't be able to do the correct callbacks and our change will end with unexpected results,
+         * such as view being attached, but not interactable via i.e. touch.
+         */
+        anim = requireNotNull(
+            Anim.createFromResources(container.context, fromAnimResId, toAnimResId)
+        ).apply {
+            addListener(object : Anim.Listener {
+                override fun onAnimationCancel(animation: Anim) {
+                    from?.let { resetFromView(it) }
+                    if (to != null && to.parent === container) {
+                        container.removeView(to)
+                    }
+                    complete(changeListener, this)
                 }
+
+                override fun onAnimationEnd(animation: Anim) {
+                    if (!canceled && anim != null) {
+                        if (from != null && (!isPush || removesFromViewOnPush)) {
+                            container.removeView(from)
+                        }
+                        complete(changeListener, this)
+                        if (isPush && from != null) {
+                            resetFromView(from)
+                        }
+                    }
+                }
+
+            })
+
+            start(container = container, fromView = from, toView = to)
+        }
     }
 
     private inner class OnAnimationReadyOrAbortedListener internal constructor(

@@ -37,28 +37,12 @@ class ControllerNavigator(private val router: Router) :
         router.setPopsLastView(true)
     }
 
-    private val destroyRouterMethod =
-        Router::class.java.getDeclaredMethod("destroy", Boolean::class.java)
-                .apply {
-                    isAccessible = true
-                }
-
     @ExperimentalStdlibApi
     override fun popBackStack(): Boolean {
         val prePopSize = router.backstackSize
-//        if (prePopSize == 1) {
-//            destroyRouterMethod.invoke(router, true)
-//            return true
-//        } else {
-//            router.popCurrentController()
-//            val postPopSize = router.backstackSize
-//            val wasSomethingPopped = (postPopSize == (prePopSize - 1))
-//            return wasSomethingPopped
-//        }
         router.popCurrentController()
         val postPopSize = router.backstackSize
-        val wasSomethingPopped = (postPopSize == (prePopSize - 1))
-        return wasSomethingPopped
+        return (postPopSize == (prePopSize - 1))
     }
 
     override fun createDestination(): Destination {
@@ -83,7 +67,7 @@ class ControllerNavigator(private val router: Router) :
 
         val isAdded = when {
             initialNavigation -> {
-                router.pushController(transaction)
+                router.setRoot(transaction)
                 true
             }
             isSingleTopReplacement -> {
@@ -119,7 +103,7 @@ class ControllerNavigator(private val router: Router) :
         @AnimRes
         @AnimatorRes
         val enterAnim: Int? = navOptions?.let {
-            if (it.enterAnim != -1) {
+            if (isAnimValid(it.enterAnim)) {
                 it.enterAnim
             } else null
         }
@@ -127,7 +111,7 @@ class ControllerNavigator(private val router: Router) :
         @AnimRes
         @AnimatorRes
         val exitAnim: Int? = navOptions?.let {
-            if (it.exitAnim != -1) {
+            if (isAnimValid(it.exitAnim)) {
                 it.exitAnim
             } else null
         }
@@ -135,7 +119,7 @@ class ControllerNavigator(private val router: Router) :
         @AnimRes
         @AnimatorRes
         val popEnterAnim: Int? = navOptions?.let {
-            if (it.popEnterAnim != -1) {
+            if (isAnimValid(it.popEnterAnim)) {
                 it.popEnterAnim
             } else null
         }
@@ -143,7 +127,7 @@ class ControllerNavigator(private val router: Router) :
         @AnimRes
         @AnimatorRes
         val popExitAnim: Int? = navOptions?.let {
-            if (it.popExitAnim != -1) {
+            if (isAnimValid(it.popExitAnim)) {
                 it.popExitAnim
             } else null
         }

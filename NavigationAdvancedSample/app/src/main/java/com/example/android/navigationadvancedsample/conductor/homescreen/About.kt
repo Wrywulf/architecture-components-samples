@@ -33,14 +33,4 @@ class About() : Controller() {
             }
         }
     }
-
-    override fun onDetach(view: View) {
-        super.onDetach(view)
-    }
-    override fun onAttach(view: View) {
-        super.onAttach(view)
-    }
-    override fun onDestroyView(view: View) {
-            Log.d("About", "onDestroyView.")
-    }
 }

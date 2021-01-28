@@ -31,10 +31,4 @@ class Title() : Controller() {
                 }
         return view
     }
-    override fun onDetach(view: View) {
-        super.onDetach(view)
-    }
-    override fun onAttach(view: View) {
-        super.onAttach(view)
-    }
 }

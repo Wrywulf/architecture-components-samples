@@ -16,16 +16,12 @@
 
 package com.example.android.navigationadvancedsample
 
-import android.app.Activity
 import android.content.Intent
 import android.util.Log
 import android.util.SparseArray
 import androidx.core.util.forEach
 import androidx.core.util.set
-import androidx.core.view.doOnNextLayout
 import androidx.fragment.app.FragmentManager
-import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.navigation.NavController
@@ -49,33 +45,25 @@ fun BottomNavigationView.setupWithConductorNavController(
 ) {
     Log.i("BottomNavigationView", "setupWithConductorNavController navGraphIds=$navGraphIds")
     // When a navigation item is selected
+    var previousSelection = selectedItemId
     setOnNavigationItemSelectedListener { item ->
-        Log.i("BottomNavigationView", "setOnNavigationItemSelectedListener item=$item")
-//        if (keepMenuItemSelectionsAsBackstack) {
-            conductorNavHost.navController.navigate(item.itemId)
-//        } else {
-//            conductorNavHost.navigateBackstack(item.itemId)
-//        }
+        Log.i("BottomNavigationView", "setOnNavigationItemSelectedListener previousSelection=$previousSelection, item=$item, id=${item.itemId}")
+        if (!keepMenuItemSelectionsAsBackstack) {
+            conductorNavHost.navController.popBackStack(navGraphIds.getValue(previousSelection), true)
+        }
+        conductorNavHost.navController.navigate(item.itemId)
+        previousSelection = item.itemId
         true
     }
 
     // Optional: on item reselected, pop back stack to the destination of the graph
     setOnNavigationItemReselectedListener { item ->
-        Log.i("BottomNavigationView", "setOnNavigationItemReselectedListener item=$item, id=${item.itemId}")
+        Log.i(
+            "BottomNavigationView",
+            "setOnNavigationItemReselectedListener item=$item, id=${item.itemId}"
+        )
         // Pop the back stack to the start destination of the each of our "bottom navigation sub graphs"
-//        if (keepMenuItemSelectionsAsBackstack) {
-        /*
-         FIXME itemId is not the screen destination id
-         */
-            conductorNavHost.navController.popBackStack(navGraphIds.getValue(item.itemId), false)
-//        } else {
-//            conductorNavHost.navigateBackstack(
-//                destinationId = item.itemId,
-//                startDestinationArgs = null,
-//                shouldCacheCurrent = false,
-//                destroyCachedGraph = true
-//            )
-//        }
+        conductorNavHost.navController.popBackStack(navGraphIds.getValue(item.itemId), false)
     }
 }
 
