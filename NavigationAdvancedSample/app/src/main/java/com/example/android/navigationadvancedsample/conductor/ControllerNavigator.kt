@@ -31,7 +31,7 @@ import kotlin.collections.set
  * already has the correct state save/restore mechanism in place externally. (see ie. [LifecycleHandler.getRouter])
  */
 @Navigator.Name("controller")
-class ControllerNavigator(val router: Router) :
+class ControllerNavigator(private val router: Router) :
     Navigator<ControllerNavigator.Destination>() {
     private val destroyRouterMethod =
         Router::class.java.getDeclaredMethod("destroy", Boolean::class.java)
@@ -75,20 +75,37 @@ class ControllerNavigator(val router: Router) :
         super.onRestoreState(savedState)
         Log.i(
             "ControllerNavigator",
-            "onRestoreState RESTORING pre destroy backstackNames=${router.backstack.map { it.controller.toString() }}"
+            "onRestoreState RESTORING pre destroy size={${router.backstack.size}} names=${router.backstack.map { it.controller.toString() }}"
         )
         /*
-         * In full activity restoration cases, it seems the router backstack,
-         * navigation backstack and our cached router backstack gets out of sync,
-         * destroying the router here, just prior to our manual restoration,
-         * fixes that issue.
+         * When we actually restore,
+         * we want to do it on a clean slate as we sometimes
+         * (i.e. during activity restoration, or device orientation change)
+         * wont have torn down completely and the Navigation and Router backstack will be out of sync,
+         * so destroy whatever is in the router now, if anything, then do the restore.
+         * Manifestations of issues without this include a router backstack which grows with each restore,
+         * and views being visible behind each other.
          */
         destroyRouterMethod.invoke(router, true)
+
+        Log.i(
+            "ControllerNavigator",
+            "onRestoreState DESTROYED size={${router.backstack.size}} names=${router.backstack.map { it.controller.toString() }}"
+        )
         router.restoreInstanceState(savedState)
+
+        /*
+         * Because the restored state thinks everything is attached,
+         * we need to tell the entire restored backstack that it needs to be reAttached,
+         * then we call rebind to properly attach them all.
+         * Manifestations of issues without this is views being visible,
+         * but you cannot interact with them i.e. via touch.
+         */
+        router.prepareForHostDetach()
         router.rebindIfNeeded()
         Log.i(
             "ControllerNavigator",
-            "onRestoreState RESTORING backstackNames=${router.backstack.map { it.controller.toString() }}"
+            "onRestoreState RESTORING backstack size={${router.backstack.size}} names=${router.backstack.map { it.controller.toString() }}"
         )
     }
 

@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.*
 import com.bluelinelabs.conductor.Conductor
-import com.bluelinelabs.conductor.Router
 
 /**
  * A root [NavHost] that is to be instantiated in [Activity.onCreate]
@@ -35,11 +34,6 @@ class ConductorNavHost(
     private val savedStateBundles: SparseArray<Bundle>
     private val navigator =
         ControllerNavigator(Conductor.attachRouter(activity, container, savedInstanceState))
-    private val destroyRouterMethod =
-        Router::class.java.getDeclaredMethod("destroy", Boolean::class.java)
-                .apply {
-                    isAccessible = true
-                }
     private var previousBackstackRootDestination: Int? = null
 
     init {
@@ -188,12 +182,6 @@ class ConductorNavHost(
             cacheGraphState(it)
             outState.putInt(KEY_DESTINATION_ID, it)
         }
-        /*
-         * Destroy the router after saving it, since we wish to control restoration ourselves,
-         * and not have it re-inflate any potentially restored views,
-         * so destroy the router all together first.
-         */
-        destroyRouterMethod.invoke(navigator.router, true)
         startDestinationArgs?.let { outState.putBundle(KEY_START_DEST_ARGS, it) }
         outState.putInt(KEY_GRAPH_ID, graphId)
         outState.putSparseParcelableArray(KEY_GRAPH_SAVED_STATES, savedStateBundles)
