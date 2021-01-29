@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package com.example.android.navigationadvancedsample.listscreen
+package com.example.android.navigationadvancedsample.conductor.listscreen
 
-import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -27,15 +26,23 @@ import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
+import com.bluelinelabs.conductor.Controller
 import com.example.android.navigationadvancedsample.R
 
 /**
  * Shows a static leaderboard with multiple users.
  */
-class Leaderboard : Fragment() {
+class Leaderboard() : Controller() {
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
+    protected constructor(bundle: Bundle?) : this()
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup,
+        savedViewState: Bundle?
+    ): View {
+overriddenPopHandler
+
         // Inflate the layout for this fragment
         val view = inflater.inflate(R.layout.fragment_leaderboard, container, false)
 
@@ -52,7 +59,6 @@ class Leaderboard : Fragment() {
         }
         return view
     }
-
 }
 
 class MyAdapter(private val myDataset: Array<String>) :

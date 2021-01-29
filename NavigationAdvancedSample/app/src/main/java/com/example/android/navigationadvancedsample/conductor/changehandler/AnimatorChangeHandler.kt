@@ -16,7 +16,6 @@ import androidx.annotation.AnimatorRes
 import com.bluelinelabs.conductor.Controller
 import com.bluelinelabs.conductor.ControllerChangeHandler
 
-
 /**
  * A base [ControllerChangeHandler] that facilitates using [Animator]s to replace Controller Views
  *
@@ -64,13 +63,14 @@ class AnimatorChangeHandler @JvmOverloads constructor(
                         null
                     }
                 }
-        toAnimResId = bundle.getInt(KEY_ANIMATOR_TO_RES, -1).let {
-            if (it != -1) {
-                it
-            } else {
-                null
-            }
-        }
+        toAnimResId = bundle.getInt(KEY_ANIMATOR_TO_RES, -1)
+                .let {
+                    if (it != -1) {
+                        it
+                    } else {
+                        null
+                    }
+                }
         removesFromViewOnPush =
             bundle.getBoolean(KEY_REMOVES_FROM_ON_PUSH)
     }
@@ -186,33 +186,39 @@ class AnimatorChangeHandler @JvmOverloads constructor(
             return
         }
 
-        anim = Anim.createFromResources(container.context, fromAnimResId, toAnimResId)
-                ?.apply {
-                    addListener(object : Anim.Listener {
-                        override fun onAnimationCancel(animation: Anim) {
-                            from?.let { resetFromView(it) }
-                            if (to != null && to.parent === container) {
-                                container.removeView(to)
-                            }
-                            complete(changeListener, this)
-                        }
-
-                        override fun onAnimationEnd(animation: Anim) {
-                            if (!canceled && anim != null) {
-                                if (from != null && (!isPush || removesFromViewOnPush)) {
-                                    container.removeView(from)
-                                }
-                                complete(changeListener, this)
-                                if (isPush && from != null) {
-                                    resetFromView(from)
-                                }
-                            }
-                        }
-
-                    })
-
-                    start(container = container, fromView = from, toView = to)
+        /*
+         * requireNotNull, because if we're not able to create the animators,
+         * we won't be able to do the correct callbacks and our change will end with unexpected results,
+         * such as view being attached, but not interactable via i.e. touch.
+         */
+        anim = requireNotNull(
+            Anim.createFromResources(container.context, fromAnimResId, toAnimResId)
+        ).apply {
+            addListener(object : Anim.Listener {
+                override fun onAnimationCancel(animation: Anim) {
+                    from?.let { resetFromView(it) }
+                    if (to != null && to.parent === container) {
+                        container.removeView(to)
+                    }
+                    complete(changeListener, this)
                 }
+
+                override fun onAnimationEnd(animation: Anim) {
+                    if (!canceled && anim != null) {
+                        if (from != null && (!isPush || removesFromViewOnPush)) {
+                            container.removeView(from)
+                        }
+                        complete(changeListener, this)
+                        if (isPush && from != null) {
+                            resetFromView(from)
+                        }
+                    }
+                }
+
+            })
+
+            start(container = container, fromView = from, toView = to)
+        }
     }
 
     private inner class OnAnimationReadyOrAbortedListener internal constructor(
@@ -336,7 +342,7 @@ class AnimatorChangeHandler @JvmOverloads constructor(
          * Encapsulates to/from [Animation]s
          */
         data class Ation(val fromAnimation: Animation?, val toAnimation: Animation?) : Anim() {
-            // Animation doesn't track cancelation, so we need to track it externally
+            // Animation doesn't track cancellation, so we need to track it externally
             private var isCanceled = false
 
             private var container: ViewGroup? = null
@@ -371,10 +377,6 @@ class AnimatorChangeHandler @JvmOverloads constructor(
                 }
 
                 override fun onAnimationEnd(animation: Animation?) {
-                    // onAnimationEnd() comes during draw(), so there can still be some
-                    // draw events happening after this call. We don't want to detach
-                    // the view until after the onAnimationEnd()
-
                     // onAnimationEnd() comes during draw(), so there can still be some
                     // draw events happening after this call. We don't want to detach
                     // the view until after the onAnimationEnd()

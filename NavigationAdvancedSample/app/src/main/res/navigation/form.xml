@@ -22,18 +22,18 @@
     android:id="@+id/form"
     app:startDestination="@id/register">
 
-    <fragment
+    <controller
             android:id="@+id/register"
-            android:name="com.example.android.navigationadvancedsample.formscreen.Register"
+            android:name="com.example.android.navigationadvancedsample.conductor.formscreen.Register"
             android:label="@string/title_register"
             tools:layout="@layout/fragment_register">
         <action
             android:id="@+id/action_register_to_registered"
             app:destination="@id/registered"/>
-    </fragment>
-    <fragment
+    </controller>
+    <controller
         android:id="@+id/registered"
-        android:name="com.example.android.navigationadvancedsample.formscreen.Registered"
+        android:name="com.example.android.navigationadvancedsample.conductor.formscreen.Registered"
         android:label="Registered"
         tools:layout="@layout/fragment_registered"/>
 </navigation>

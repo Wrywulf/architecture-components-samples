@@ -17,6 +17,12 @@
 apply plugin: 'com.android.application'
 
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+
+androidExtensions {
+    /* in order to use kotlin annotation Parcelize */
+    experimental = true
+}
 
 android {
     compileSdkVersion build_versions.compile_sdk

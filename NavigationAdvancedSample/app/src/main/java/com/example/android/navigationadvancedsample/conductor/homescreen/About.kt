@@ -33,8 +33,4 @@ class About() : Controller() {
             }
         }
     }
-
-    override fun onDestroyView(view: View) {
-            Log.d("About", "onDestroyView.")
-    }
 }

@@ -27,17 +27,6 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name="com.example.android.navigationadvancedsample.MainActivity"
-            android:label="NavFragSample">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <!-- This is added to handle a deep link -->
-            <nav-graph android:value="@navigation/list" />
-        </activity>
-
         <activity android:name="com.example.android.navigationadvancedsample.ConductorActivity"
             android:label="NavConSample">
             <intent-filter>
@@ -47,7 +36,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <!-- This is added to handle a deep link -->
-            <nav-graph android:value="@navigation/single_stack" />
+            <nav-graph android:value="@navigation/list" />
         </activity>
     </application>
 

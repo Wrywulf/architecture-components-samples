@@ -2,18 +2,15 @@ package com.example.android.navigationadvancedsample.conductor
 
 import android.content.Context
 import android.os.Bundle
-import android.os.Handler
 import android.util.AttributeSet
 import android.util.Log
-import android.view.ViewGroup
 import androidx.annotation.AnimRes
 import androidx.annotation.AnimatorRes
 import androidx.navigation.*
 import com.bluelinelabs.conductor.Controller
-import com.bluelinelabs.conductor.ControllerChangeHandler
 import com.bluelinelabs.conductor.Router
 import com.bluelinelabs.conductor.RouterTransaction
-import com.bluelinelabs.conductor.internal.LifecycleHandler
+import com.bluelinelabs.conductor.changehandler.SimpleSwapChangeHandler
 import com.example.android.navigationadvancedsample.R
 import com.example.android.navigationadvancedsample.conductor.ControllerNavigator.Destination
 import com.example.android.navigationadvancedsample.conductor.changehandler.AnimatorChangeHandler
@@ -22,113 +19,99 @@ import java.util.*
 import kotlin.collections.set
 
 /**
- * Navigator that navigates through [RouterTransaction]s via the provided [Router] This navigator does
- * not manage its own backstack, but manages it exclusively via the [Router].
+ * Navigator that navigates through [RouterTransaction]s via the provided [Router].
+ * This navigator does not manage its own backstack,
+ * but manages the [Router] accordingly.
  *
  * Every destination using this Navigator must set a valid [Controller] class name with
  * <code>android:name</code> or [Destination.controllerClass].
  *
- * NOTE!
- * This [Navigator] does not save or restore router state. It is assumed that the ctor provided [Router]
- * already has the correct state save/restore mechanism in place externally. (see ie. [LifecycleHandler.getRouter])
  */
 @Navigator.Name("controller")
 class ControllerNavigator(private val router: Router) :
     Navigator<ControllerNavigator.Destination>() {
+    private val destroyRouterMethod =
+        Router::class.java.getDeclaredMethod("destroy", Boolean::class.java)
+                .apply {
+                    isAccessible = true
+                }
 
-    private val handler = Handler()
+    init {
+        router.setPopsLastView(true)
+    }
 
-    private val desiredBackstack = mutableListOf<RouterTransaction>()
+    override fun onSaveState(): Bundle {
+        val routerBundle = Bundle()
+        router.saveInstanceState(routerBundle)
+        val backstackNames = router.backstack.map { it.controller.toString() }
 
-    private val backStackProcessingRunnable = Runnable {
-        // make the desired backstack come into effect by popping the delta from the router's backstack
-        val delta: Set<RouterTransaction> = router.backstack.toSet()
-                .minus(desiredBackstack.toSet())
-        val newTopOfBackStack = desiredBackstack.lastOrNull()
-        desiredBackstack.clear()
-        Log.d(
+        Log.i(
             "ControllerNavigator",
-            "Execute backstack change. Entries ${delta.size}"
+            "onSaveState CACHING backstackNames=$backstackNames"
         )
-        if (delta.size == 1) {
-            delta.firstOrNull()
-                    ?.let {
-                        Log.d("ControllerNavigator", "Popping single with tag: ${it.tag()}")
-                        router.popController(it.controller)
-                    }
-        } else if (delta.size > 1) {
-            newTopOfBackStack?.let {
-                Log.d(
-                    "ControllerNavigator",
-                    "Popping multiple (${delta.size}) up to tag: ${it.tag()}"
-                )
-                router.popToTag(
-                    it.tag()!!, // pop to the new "top of backstack"..
-                    delta.firstOrNull()
-                            ?.popChangeHandler() // ..but use the changehandler from the last popped transaction
-                )
-            }
-        }
+        return routerBundle
     }
 
     /**
-     * Schedules back stack popping - overwriting any previous value
+     * Toggle all pop animations for all controllers currently in backstack,
+     * to either [enabled] == true, which means they all use whatever was given with their [RouterTransaction],
+     * or [enabled] == false, which then utilizes [SimpleSwapChangeHandler] to show no animation.
      */
-    private fun dispatchBackstackPopping() {
-        handler.removeCallbacks(backStackProcessingRunnable)
-        handler.post(backStackProcessingRunnable)
+    fun setAllPopAnimations(enabled: Boolean) {
+        router.backstack.map {
+            val popHandler = if (enabled) {
+                null
+            } else {
+                SimpleSwapChangeHandler()
+            }
+            it.controller.overridePopHandler(popHandler)
+        }
     }
 
-    private val lastTransaction: RouterTransaction?
-        get() = router.backstack.lastOrNull()
+    override fun onRestoreState(savedState: Bundle) {
+        super.onRestoreState(savedState)
+        Log.i(
+            "ControllerNavigator",
+            "onRestoreState RESTORING pre destroy size={${router.backstack.size}} names=${router.backstack.map { it.controller.toString() }}"
+        )
+        /*
+         * When we actually restore,
+         * we want to do it on a clean slate as we sometimes
+         * (i.e. during activity restoration, or device orientation change)
+         * wont have torn down completely and the Navigation and Router backstack will be out of sync,
+         * so destroy whatever is in the router now, if anything, then do the restore.
+         * Manifestations of issues without this include a router backstack which grows with each restore,
+         * and views being visible behind each other.
+         */
+        destroyRouterMethod.invoke(router, true)
 
-    private var lastPoppedTag: String = ""
+        Log.i(
+            "ControllerNavigator",
+            "onRestoreState DESTROYED size={${router.backstack.size}} names=${router.backstack.map { it.controller.toString() }}"
+        )
+        router.restoreInstanceState(savedState)
 
-    private val lastTag: String
-        get() {
-            lastTransaction ?: return lastPoppedTag
-            return lastTransaction?.tag()
-                    .orEmpty()
-        }
-
-    init {
-        router.addChangeListener(object : ControllerChangeHandler.ControllerChangeListener {
-            override fun onChangeStarted(
-                to: Controller?,
-                from: Controller?,
-                isPush: Boolean,
-                container: ViewGroup,
-                handler: ControllerChangeHandler
-            ) {
-            }
-
-            override fun onChangeCompleted(
-                to: Controller?,
-                from: Controller?,
-                isPush: Boolean,
-                container: ViewGroup,
-                handler: ControllerChangeHandler
-            ) {
-                val lastTag = lastTag.toIntOrNull() ?: 0
-                if (lastTag == 0) {
-                    return
-                }
-            }
-        })
+        /*
+         * Because the restored state thinks everything is attached,
+         * we need to tell the entire restored backstack that it needs to be reAttached,
+         * then we call rebind to properly attach them all.
+         * Manifestations of issues without this is views being visible,
+         * but you cannot interact with them i.e. via touch.
+         */
+        router.prepareForHostDetach()
+        router.rebindIfNeeded()
+        Log.i(
+            "ControllerNavigator",
+            "onRestoreState RESTORING backstack size={${router.backstack.size}} names=${router.backstack.map { it.controller.toString() }}"
+        )
     }
 
     @ExperimentalStdlibApi
     override fun popBackStack(): Boolean {
-        return lastTransaction?.let {
-            if (desiredBackstack.isEmpty()) {
-                desiredBackstack.addAll(router.backstack)
-            }
-            desiredBackstack.removeLastOrNull()
-                    ?.let {
-                        dispatchBackstackPopping()
-                        true
-                    } ?: false
-        } ?: false
+        val prePopSize = router.backstackSize
+        router.popCurrentController()
+        val postPopSize = router.backstackSize
+        return (postPopSize == (prePopSize - 1))
     }
 
     override fun createDestination(): Destination {
@@ -141,12 +124,16 @@ class ControllerNavigator(private val router: Router) :
         navOptions: NavOptions?,
         navigatorExtras: Navigator.Extras?
     ): NavDestination? {
+        Log.d(
+            "ControllerNavigator",
+            "navigate to destination=$destination, PRE backstack names=${router.backstack.map { it.controller.toString() }}"
+        )
         val initialNavigation: Boolean = router.backstack.isEmpty()
 
         val isSingleTopReplacement = (navOptions != null && !initialNavigation
                 && navOptions.shouldLaunchSingleTop()
                 && router.backstack.last()
-                .tag() == destination.id.toString())
+                .tag() == createTag(destination, args))
 
         val transaction =
             createTransaction(destination = destination, args = args, navOptions = navOptions)
@@ -170,6 +157,11 @@ class ControllerNavigator(private val router: Router) :
         if (navigatorExtras is Extras) {
             //TODO shared element?
         }
+
+        Log.d(
+            "ControllerNavigator",
+            "navigate to destination=$destination, POST backstack names=${router.backstack.map { it.controller.toString() }}"
+        )
         return if (isAdded) {
             destination
         } else {
@@ -188,7 +180,7 @@ class ControllerNavigator(private val router: Router) :
         @AnimRes
         @AnimatorRes
         val enterAnim: Int? = navOptions?.let {
-            if (it.enterAnim != -1) {
+            if (isAnimValid(it.enterAnim)) {
                 it.enterAnim
             } else null
         }
@@ -196,7 +188,7 @@ class ControllerNavigator(private val router: Router) :
         @AnimRes
         @AnimatorRes
         val exitAnim: Int? = navOptions?.let {
-            if (it.exitAnim != -1) {
+            if (isAnimValid(it.exitAnim)) {
                 it.exitAnim
             } else null
         }
@@ -204,7 +196,7 @@ class ControllerNavigator(private val router: Router) :
         @AnimRes
         @AnimatorRes
         val popEnterAnim: Int? = navOptions?.let {
-            if (it.popEnterAnim != -1) {
+            if (isAnimValid(it.popEnterAnim)) {
                 it.popEnterAnim
             } else null
         }
@@ -212,25 +204,25 @@ class ControllerNavigator(private val router: Router) :
         @AnimRes
         @AnimatorRes
         val popExitAnim: Int? = navOptions?.let {
-            if (it.popExitAnim != -1) {
+            if (isAnimValid(it.popExitAnim)) {
                 it.popExitAnim
             } else null
         }
 
-        val pushChangeHandler = if (enterAnim != null || exitAnim != null) {
+        val pushChangeHandler = if (isAnimValid(enterAnim) || isAnimValid(exitAnim)) {
             AnimatorChangeHandler(fromAnimResId = exitAnim, toAnimResId = enterAnim)
         } else {
             null
         }
 
-        val popChangeHandler = if (popEnterAnim != null || popExitAnim != null) {
+        val popChangeHandler = if (isAnimValid(popEnterAnim) || isAnimValid(popExitAnim)) {
             AnimatorChangeHandler(fromAnimResId = popExitAnim, toAnimResId = popEnterAnim)
         } else {
             null
         }
 
 
-        val tag = "${destination.id}-${args.hashCode()}"
+        val tag = createTag(destination, args)
 
 
         Log.d("ControllerNavigator", "Navigating to tag: $tag")
@@ -239,6 +231,19 @@ class ControllerNavigator(private val router: Router) :
                 .popChangeHandler(popChangeHandler)
                 .pushChangeHandler(pushChangeHandler)
                 .tag(tag)
+    }
+
+    private fun isAnimValid(animResId: Int?): Boolean {
+        /*
+         * null is obviously invalid
+         * -1 is default value if nothing was provided
+         * 0 is default value in Navigation when doing deepLinking
+         */
+        return (animResId != null && animResId != -1 && animResId != 0)
+    }
+
+    private fun createTag(destination: NavDestination, args: Bundle?): String {
+        return "${destination.id}-${args.hashCode()}"
     }
 
     /**
