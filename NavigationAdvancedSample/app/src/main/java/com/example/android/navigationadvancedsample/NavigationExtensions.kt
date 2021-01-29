@@ -31,17 +31,16 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import java.util.*
 
 /**
- * Manages the various graphs needed for a [BottomNavigationView].
+ * Manages the various backstacks needed for a [BottomNavigationView].
  *
  * This sample is a workaround until the Navigation Component supports multiple back stacks.
  */
 fun BottomNavigationView.setupWithConductorNavController(
     /**
-     * map of id's to navGraphs, i.e R.id.home to R.navigation.home
+     * map of destinationId's of graph nodes(/matching with bottomNav MenuItemId), to their startDestinations
      */
     navGraphIds: Map<Int, Int>,
-    conductorNavHost: ConductorNavHost,
-    keepMenuItemSelectionsAsBackstack: Boolean = false
+    conductorNavHost: ConductorNavHost
 ) {
     Log.i("BottomNavigationView", "setupWithConductorNavController navGraphIds=$navGraphIds")
     // When a navigation item is selected
@@ -51,18 +50,17 @@ fun BottomNavigationView.setupWithConductorNavController(
             "BottomNavigationView",
             "setOnNavigationItemSelectedListener previousSelection=$previousSelection, item=$item, id=${item.itemId}"
         )
-        if (!keepMenuItemSelectionsAsBackstack) {
-            /*
-             * We are switching tabs in the bottom nav,
-             * and dont want any transitional pop animations when doing so.
-             */
-            conductorNavHost.setAllPopAnimations(false)
-            conductorNavHost.navController.popBackStack(
-                navGraphIds.getValue(previousSelection),
-                true
-            )
-            conductorNavHost.setAllPopAnimations(true)
-        }
+        /*
+         * We are switching tabs in the bottom nav,
+         * and don't want any transitional pop animations from the existing backstack
+         * when doing so.
+         */
+        conductorNavHost.setAllPopAnimations(false)
+        conductorNavHost.navController.popBackStack(
+            navGraphIds.getValue(previousSelection),
+            true
+        )
+        conductorNavHost.setAllPopAnimations(true)
         conductorNavHost.navController.navigate(item.itemId)
         previousSelection = item.itemId
         true

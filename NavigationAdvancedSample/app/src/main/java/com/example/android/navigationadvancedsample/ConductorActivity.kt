@@ -1,14 +1,9 @@
 package com.example.android.navigationadvancedsample
 
 import android.os.Bundle
-import android.util.Log
-import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.doOnNextLayout
-import androidx.navigation.NavController
-import com.bluelinelabs.conductor.ChangeHandlerFrameLayout
 import com.example.android.navigationadvancedsample.conductor.ConductorNavHost
-import com.example.android.navigationadvancedsample.listscreen.MyAdapter
+import com.example.android.navigationadvancedsample.conductor.listscreen.MyAdapter
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 /**
@@ -47,7 +42,8 @@ class ConductorActivity : AppCompatActivity() {
         val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottom_nav)
 
         /*
-        FIXME can we resolve a graph start destination or do we need a map here?
+         * FIXME could resolve root graph first node start destinations,
+         * but leaving it as a map here for now since it may provide more flexibility to not make graph design assumptions
          */
         val navGraphIds = mapOf(
             R.id.home to R.id.titleScreen,
@@ -105,11 +101,6 @@ class ConductorActivity : AppCompatActivity() {
 //                .setArguments(Bundle().apply { putString(MyAdapter.USERNAME_KEY, "Deep Linked") })
 //                .createTaskStackBuilder().intents[0]
 //        conductorNavHost.navController.handleDeepLink(deepLinkIntent)
-        /*
-         * FIXME pushing and popping and pushing in quick succession leaves views in correct state,
-         *   but cannot interact with them via touch
-         */
-//        findViewById<ViewGroup>(R.id.nav_host_container).requestLayout()
     }
 
 }
